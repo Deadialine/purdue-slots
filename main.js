@@ -14,6 +14,8 @@
 const CONFIG = {
   startingCredits: 0,
   costPerSpin: 1,
+  betOptions: [0.2, 0.25, 0.5, 1],
+  defaultBet: 1,
   visibleSymbols: 3,
   symbolHeight: 120,
   spinDurationMs: 1800, // base spin duration per reel
@@ -21,14 +23,14 @@ const CONFIG = {
   cyclesPerSpin: 4,      // how many full symbol loops to complete before stopping
   easing: 'cubic-bezier(0.22, 0.68, 0.24, 1.02)',
   symbols: [
-    { name: 'Pete the Mascot', image: 'assets/images/pete.png' },
-    { name: 'Purdue "P" Logo', image: 'assets/images/plogo.png' },
-    { name: 'Purdue Bell Tower', image: 'assets/images/bell.png' },
-    { name: 'Engineering Fountain', image:'assets/images/engineering_fountain.png' },
-    { name: 'Unfinished Block "P"', image: 'assets/images/unfinished_p.png' },
-    { name: 'Purdue Archway', image: 'assets/images/arhway.png' },
-    { name: 'Lionhead Fountain', image: 'assets/images/lionhead_fountain.png' },
-    { name: 'Purdue Water Tower', image: 'assets/images/water_tower.png' },
+    { name: 'Pete the Mascot', image: 'https://via.placeholder.com/240x240/2d2926/ffd700?text=Pete+Mascot' },
+    { name: 'Purdue "P" Logo', image: 'https://via.placeholder.com/240x240/000000/CFB991?text=Purdue+P' },
+    { name: 'Purdue Bell Tower', image: 'https://via.placeholder.com/240x240/2d2926/ffffff?text=Bell+Tower' },
+    { name: 'Engineering Fountain', image: 'https://via.placeholder.com/240x240/1c1b17/ffd700?text=Engineering+Fountain' },
+    { name: 'Unfinished Block "P"', image: 'https://via.placeholder.com/240x240/1b1a15/CFB991?text=Block+P' },
+    { name: 'Purdue Archway', image: 'https://via.placeholder.com/240x240/2b2926/ffefc5?text=Archway' },
+    { name: 'Lionhead Fountain', image: 'https://via.placeholder.com/240x240/1c1b19/f8e1a0?text=Lionhead+Fountain' },
+    { name: 'Purdue Water Tower', image: 'https://via.placeholder.com/240x240/2a2824/ffe9aa?text=Water+Tower' },
   ],
   // Base payout multipliers (3 of a kind)
   payoutMultipliers: {
@@ -41,7 +43,21 @@ const CONFIG = {
     'Lionhead Fountain': 7,
     'Purdue Water Tower': 6,
   },
+  multipliers: [
+    { value: 10, chance: 0.02 },
+    { value: 5, chance: 0.05 },
+    { value: 2, chance: 0.12 },
+  ],
 };
+
+const SLOGANS = [
+  'Hail Purdue!',
+  'Boiler Up!',
+  'Boiler GOLD Bonus!',
+  'Hammer Down!',
+  'Boiler Victory!',
+  'Unstoppable Boiler Makers!',
+];
 
 // Utility: format currency consistently
 const dollars = (val) => `$${val.toFixed(2)}`;
@@ -137,6 +153,7 @@ class SlotMachine {
   constructor(config) {
     this.config = config;
     this.balance = config.startingCredits;
+    this.currentBet = config.defaultBet || config.costPerSpin;
     this.reels = Array.from(document.querySelectorAll('.reel')).map(
       (el) => new Reel(el, config.symbols, config)
     );
@@ -147,24 +164,79 @@ class SlotMachine {
       spin: document.getElementById('spin'),
       insert: document.getElementById('insert'),
       reset: document.getElementById('reset'),
+      betOptions: document.getElementById('bet-options'),
+      multiplierBadge: document.getElementById('multiplier-badge'),
+      celebrationLayer: document.getElementById('celebration-layer'),
+      sloganBanner: document.getElementById('slogan-banner'),
+      autoSpin: document.getElementById('auto-spin'),
     };
     this.locked = false;
+    this.autoSpinActive = false;
+    this.autoSpinTimer = null;
+    this.sounds = {
+      small: new Audio('assets/sounds/win_small.mp3'),
+      medium: new Audio('assets/sounds/win_medium.mp3'),
+      big: new Audio('assets/sounds/win_big.mp3'),
+      champion: new Audio('assets/sounds/champion_music.mp3'),
+    };
     this.updateUi();
     this.bindUi();
+    this.renderBetOptions();
   }
 
   bindUi() {
     this.refs.spin.addEventListener('click', () => this.handleSpin());
     this.refs.insert.addEventListener('click', () => this.addCredits(1));
     this.refs.reset.addEventListener('click', () => this.reset());
+    this.refs.autoSpin.addEventListener('click', () => {
+      if (this.autoSpinActive) {
+        this.stopAutoSpin('Auto spin stopped.');
+      } else {
+        this.startAutoSpin();
+      }
+    });
   }
 
   updateUi(message) {
     this.refs.balance.textContent = dollars(this.balance);
-    this.refs.cost.textContent = dollars(this.config.costPerSpin);
+    this.refs.cost.textContent = dollars(this.currentBet);
     if (message) {
       this.refs.result.textContent = message;
     }
+  }
+
+  renderBetOptions() {
+    this.refs.betOptions.innerHTML = '';
+    this.config.betOptions.forEach((bet) => {
+      const option = document.createElement('label');
+      option.className = 'bet-option';
+
+      const input = document.createElement('input');
+      input.type = 'radio';
+      input.name = 'bet';
+      input.value = bet;
+      input.checked = bet === this.currentBet;
+      input.addEventListener('change', () => this.setBet(bet, option));
+
+      const text = document.createElement('span');
+      text.textContent = dollars(bet);
+
+      option.appendChild(input);
+      option.appendChild(text);
+      if (input.checked) option.classList.add('active');
+      this.refs.betOptions.appendChild(option);
+    });
+  }
+
+  setBet(amount, element) {
+    this.currentBet = amount;
+    this.updateUi(`Bet set to ${dollars(amount)}`);
+    Array.from(this.refs.betOptions.children).forEach((child) => {
+      const active = child === element;
+      const input = child.querySelector('input');
+      if (input) input.checked = active;
+      child.classList.toggle('active', active);
+    });
   }
 
   addCredits(amount) {
@@ -176,19 +248,22 @@ class SlotMachine {
     this.refs.spin.disabled = state;
     this.refs.insert.disabled = state;
     this.refs.reset.disabled = state;
+    this.refs.autoSpin.disabled = state && !this.autoSpinActive;
   }
 
   async handleSpin() {
-    if (this.locked) return;
-    if (this.balance < this.config.costPerSpin) {
+    if (this.locked) return null;
+    if (this.balance < this.currentBet) {
       this.updateUi('Insert more credits to spin.');
-      return;
+      this.stopAutoSpin();
+      return null;
     }
 
-    this.balance -= this.config.costPerSpin;
+    this.balance -= this.currentBet;
     this.updateUi('Spinning...');
     this.locked = true;
     this.lockButtons(true);
+    this.hideMultiplierBadge();
 
     const spinPromises = this.reels.map((reel, index) =>
       new Promise((resolve) => {
@@ -200,16 +275,30 @@ class SlotMachine {
 
     const results = await Promise.all(spinPromises);
     const windowSymbols = results.map((window) => window[Math.floor(window.length / 2)]);
-    const payout = this.calculatePayout(windowSymbols);
-    if (payout > 0) {
+    const baseWin = this.calculatePayout(windowSymbols);
+    let payout = 0;
+    let multiplier = 1;
+
+    if (baseWin > 0) {
+      multiplier = this.rollMultiplier();
+      payout = baseWin * multiplier;
       this.balance += payout;
-      this.updateUi(`WIN: ${windowSymbols[0].name} pays ${dollars(payout)}!`);
+      this.updateUi(`WIN: ${windowSymbols[0].name} pays ${dollars(baseWin)}${multiplier > 1 ? ` x${multiplier}` : ''}!`);
+      this.handleWinEffects(payout, multiplier);
     } else {
       this.updateUi('No win. Try again!');
     }
 
     this.locked = false;
     this.lockButtons(false);
+    if (this.autoSpinActive) {
+      if (this.balance < this.currentBet) {
+        this.stopAutoSpin('Auto spin stopped: Not enough credits.');
+      } else {
+        this.autoSpinTimer = setTimeout(() => this.handleSpin(), 1000);
+      }
+    }
+    return { payout, multiplier };
   }
 
   calculatePayout(symbols) {
@@ -217,16 +306,182 @@ class SlotMachine {
     const same = a.name === b.name && b.name === c.name;
     if (!same) return 0;
     const multiplier = this.config.payoutMultipliers[a.name] ?? 5;
-    return multiplier * this.config.costPerSpin;
+    return multiplier * this.currentBet;
+  }
+
+  rollMultiplier() {
+    const roll = Math.random();
+    let cumulative = 0;
+    for (const entry of this.config.multipliers) {
+      cumulative += entry.chance;
+      if (roll < cumulative) return entry.value;
+    }
+    return 1;
+  }
+
+  showMultiplierBadge(value) {
+    this.refs.multiplierBadge.textContent = `x${value} Multiplier!`;
+    this.refs.multiplierBadge.classList.remove('hidden');
+    requestAnimationFrame(() => {
+      this.refs.multiplierBadge.classList.add('show');
+    });
+  }
+
+  hideMultiplierBadge() {
+    this.refs.multiplierBadge.classList.remove('show');
+    this.refs.multiplierBadge.classList.add('hidden');
+  }
+
+  playWinSound(type) {
+    const audio = this.sounds[type];
+    if (!audio) return;
+    audio.currentTime = 0;
+    audio.volume = 0.85;
+    audio.play().catch(() => {});
+  }
+
+  handleWinEffects(payout, multiplier) {
+    const tierSmall = this.currentBet * 8;
+    const tierMedium = this.currentBet * 14;
+    const tierBig = this.currentBet * 24;
+
+    if (multiplier > 1) {
+      this.showMultiplierBadge(multiplier);
+      this.triggerMultiplierWinEffects(multiplier);
+    }
+
+    if (payout >= tierBig || multiplier >= 5) {
+      this.triggerBigWinEffects();
+      this.playWinSound('champion');
+    } else if (payout >= tierMedium) {
+      this.triggerMediumWinEffects();
+      this.playWinSound('medium');
+    } else if (payout >= tierSmall) {
+      this.triggerSmallWinEffects();
+      this.playWinSound('small');
+    } else {
+      this.triggerSmallWinEffects();
+      this.playWinSound('small');
+    }
+  }
+
+  triggerSmallWinEffects() {
+    this.clearCelebrationLayer();
+    this.spawnConfetti(18, ['gold']);
+    this.spawnSparkles(14);
+    this.showSlogan();
+  }
+
+  triggerMediumWinEffects() {
+    this.clearCelebrationLayer();
+    this.spawnConfetti(34, ['gold', 'dark']);
+    this.spawnSparkles(24);
+    this.addVignette();
+    this.showSlogan();
+  }
+
+  triggerBigWinEffects() {
+    this.clearCelebrationLayer();
+    this.spawnConfetti(60, ['gold', 'dark']);
+    this.spawnSparkles(40);
+    this.addVignette();
+    this.shakeMachine();
+    this.showSlogan('Hail Purdue!');
+  }
+
+  triggerMultiplierWinEffects(multiplier) {
+    this.spawnConfetti(24, ['gold']);
+  }
+
+  spawnConfetti(count, palettes) {
+    const layer = this.refs.celebrationLayer;
+    for (let i = 0; i < count; i++) {
+      const piece = document.createElement('div');
+      piece.className = `confetti-piece ${palettes[i % palettes.length] || ''}`;
+      piece.style.left = `${Math.random() * 100}%`;
+      piece.style.animationDelay = `${Math.random() * 0.4}s`;
+      piece.style.transform = `rotate(${Math.random() * 180}deg)`;
+      layer.appendChild(piece);
+      setTimeout(() => piece.remove(), 1900);
+    }
+  }
+
+  spawnSparkles(count) {
+    const layer = this.refs.celebrationLayer;
+    for (let i = 0; i < count; i++) {
+      const sparkle = document.createElement('div');
+      sparkle.className = 'sparkle';
+      sparkle.style.left = `${Math.random() * 100}%`;
+      sparkle.style.top = `${Math.random() * 100}%`;
+      sparkle.style.animationDelay = `${Math.random() * 0.3}s`;
+      layer.appendChild(sparkle);
+      setTimeout(() => sparkle.remove(), 1300);
+    }
+  }
+
+  addVignette() {
+    const vignette = document.createElement('div');
+    vignette.className = 'vignette';
+    this.refs.celebrationLayer.appendChild(vignette);
+    setTimeout(() => vignette.remove(), 1500);
+  }
+
+  shakeMachine() {
+    const shell = document.querySelector('.machine-shell');
+    shell.classList.add('shake');
+    setTimeout(() => shell.classList.remove('shake'), 1200);
+  }
+
+  showSlogan(text) {
+    const slogan = this.refs.sloganBanner;
+    slogan.textContent = text || SLOGANS[Math.floor(Math.random() * SLOGANS.length)];
+    slogan.classList.remove('hidden');
+    slogan.style.animation = 'none';
+    // force reflow
+    void slogan.offsetWidth;
+    slogan.style.animation = '';
+    setTimeout(() => slogan.classList.add('hidden'), 2000);
+  }
+
+  clearCelebrationLayer() {
+    this.refs.celebrationLayer.innerHTML = '';
+  }
+
+  startAutoSpin() {
+    if (this.autoSpinActive) return;
+    if (this.balance < this.currentBet) {
+      this.updateUi('Insert more credits to auto spin.');
+      return;
+    }
+    this.autoSpinActive = true;
+    this.refs.autoSpin.classList.add('toggled');
+    this.refs.autoSpin.textContent = 'Stop Auto';
+    if (this.locked) {
+      this.autoSpinTimer = setTimeout(() => this.handleSpin(), 500);
+      return;
+    }
+    this.handleSpin();
+  }
+
+  stopAutoSpin(message) {
+    this.autoSpinActive = false;
+    this.refs.autoSpin.classList.remove('toggled');
+    this.refs.autoSpin.textContent = 'Auto Spin';
+    clearTimeout(this.autoSpinTimer);
+    if (message) this.updateUi(message);
   }
 
   reset() {
+    this.stopAutoSpin('Machine reset. Insert credits to play.');
     this.balance = 0;
     this.refs.result.textContent = 'Machine reset. Insert credits to play.';
     this.reels.forEach((reel) => {
       reel.currentStops = reel.randomWindow();
       reel.renderStatic(reel.currentStops);
     });
+    this.hideMultiplierBadge();
+    this.clearCelebrationLayer();
+    this.refs.sloganBanner.classList.add('hidden');
     this.updateUi();
   }
 }

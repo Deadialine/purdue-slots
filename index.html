@@ -39,20 +39,33 @@
       </div>
     </div>
 
+    <div class="bet-panel">
+      <div>
+        <div class="label">Choose Your Bet</div>
+        <div id="bet-options" class="bet-options" role="radiogroup" aria-label="Bet amount"></div>
+      </div>
+      <div class="bet-note">Bigger bets power up Boilermaker multipliers.</div>
+    </div>
+
     <div class="slot-window">
       <div class="reel" id="reel-0"><div class="reel-track"></div></div>
       <div class="reel" id="reel-1"><div class="reel-track"></div></div>
       <div class="reel" id="reel-2"><div class="reel-track"></div></div>
+      <div id="multiplier-badge" class="multiplier-badge hidden">x2 Multiplier!</div>
     </div>
 
     <div class="control-panel">
       <button id="insert" class="btn secondary">Insert $1</button>
       <button id="spin" class="btn primary">Spin</button>
+      <button id="auto-spin" class="btn primary ghost">Auto Spin</button>
       <button id="reset" class="btn danger">Reset</button>
     </div>
 
     <div class="footer-text">Purdue pride on every spin. Watch the reels shimmer with Boilermaker gold!</div>
   </main>
+
+  <div id="celebration-layer" class="celebration-layer" aria-hidden="true"></div>
+  <div id="slogan-banner" class="slogan-banner hidden"></div>
 
   <script src="main.js"></script>
 </body>
