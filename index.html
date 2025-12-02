@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Purdue Slots</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Montserrat:wght@600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!--
+    How to run:
+    1. Serve this folder with any static server (e.g., `npx serve .`, `python -m http.server 8000`).
+    2. Open http://localhost:8000 in a modern browser.
+    3. Replace placeholder images inside main.js or assets/ with real Purdue imagery when ready.
+  -->
+  <div class="background-glow"></div>
+  <div class="header">
+    <div class="marquee"></div>
+    <h1>Purdue Gold Rush Slots</h1>
+    <div class="marquee"></div>
+  </div>
+
+  <main class="machine-shell">
+    <div class="top-panel">
+      <div class="credit-box">
+        <span class="label">Balance</span>
+        <span id="balance" class="value">$0</span>
+      </div>
+      <div class="credit-box">
+        <span class="label">Last Result</span>
+        <span id="result" class="value">Insert credits to play</span>
+      </div>
+      <div class="credit-box">
+        <span class="label">Cost / Spin</span>
+        <span id="cost" class="value">$1</span>
+      </div>
+    </div>
+
+    <div class="slot-window">
+      <div class="reel" id="reel-0"><div class="reel-track"></div></div>
+      <div class="reel" id="reel-1"><div class="reel-track"></div></div>
+      <div class="reel" id="reel-2"><div class="reel-track"></div></div>
+    </div>
+
+    <div class="control-panel">
+      <button id="insert" class="btn secondary">Insert $1</button>
+      <button id="spin" class="btn primary">Spin</button>
+      <button id="reset" class="btn danger">Reset</button>
+    </div>
+
+    <div class="footer-text">Purdue pride on every spin. Watch the reels shimmer with Boilermaker gold!</div>
+  </main>
+
+  <script src="main.js"></script>
+</body>
+</html>
