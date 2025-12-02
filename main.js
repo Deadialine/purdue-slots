@@ -22,16 +22,15 @@ const CONFIG = {
   spinStaggerMs: 180,    // delay between reel starts
   cyclesPerSpin: 4,      // how many full symbol loops to complete before stopping
   easing: 'cubic-bezier(0.22, 0.68, 0.24, 1.02)',
-  winBiasChance: 0.18,   // slight nudge to land a win more often
   symbols: [
-    { name: 'Pete the Mascot', image: 'https://via.placeholder.com/240x240/2d2926/ffd700?text=Pete+Mascot' },
-    { name: 'Purdue "P" Logo', image: 'https://via.placeholder.com/240x240/000000/CFB991?text=Purdue+P' },
-    { name: 'Purdue Bell Tower', image: 'https://via.placeholder.com/240x240/2d2926/ffffff?text=Bell+Tower' },
-    { name: 'Engineering Fountain', image: 'https://via.placeholder.com/240x240/1c1b17/ffd700?text=Engineering+Fountain' },
-    { name: 'Unfinished Block "P"', image: 'https://via.placeholder.com/240x240/1b1a15/CFB991?text=Block+P' },
-    { name: 'Purdue Archway', image: 'https://via.placeholder.com/240x240/2b2926/ffefc5?text=Archway' },
-    { name: 'Lionhead Fountain', image: 'https://via.placeholder.com/240x240/1c1b19/f8e1a0?text=Lionhead+Fountain' },
-    { name: 'Purdue Water Tower', image: 'https://via.placeholder.com/240x240/2a2824/ffe9aa?text=Water+Tower' },
+    { name: 'Pete the Mascot', image: 'assets/images/pete.png' },
+    { name: 'Purdue "P" Logo', image: 'assets/images/plogo.png' },
+    { name: 'Purdue Bell Tower', image: 'assets/images/bell.png' },
+    { name: 'Engineering Fountain', image:'assets/images/engineering_fountain.png' },
+    { name: 'Unfinished Block "P"', image: 'assets/images/unfinished_p.png' },
+    { name: 'Purdue Archway', image: 'assets/images/arhway.png' },
+    { name: 'Lionhead Fountain', image: 'assets/images/lionhead_fountain.png' },
+    { name: 'Purdue Water Tower', image: 'assets/images/water_tower.png' },
   ],
   // Base payout multipliers (3 of a kind)
   payoutMultipliers: {
@@ -112,15 +111,10 @@ class Reel {
     return sequence;
   }
 
-  spin(duration, forcedSymbol = null) {
+  spin(duration) {
     return new Promise((resolve) => {
       const len = this.symbols.length;
-      const forcedIndex = forcedSymbol
-        ? this.symbols.findIndex((s) => s.name === forcedSymbol.name)
-        : -1;
-      const targetIndex = forcedIndex >= 0
-        ? (forcedIndex + 1) % len
-        : Math.floor(Math.random() * len);
+      const targetIndex = Math.floor(Math.random() * len);
       const sequence = this.buildSequence(targetIndex, this.config.cyclesPerSpin);
       this.track.innerHTML = '';
       sequence.forEach((symbol) => {
@@ -184,7 +178,6 @@ class SlotMachine {
       medium: new Audio('assets/sounds/win_medium.mp3'),
       big: new Audio('assets/sounds/win_big.mp3'),
       champion: new Audio('assets/sounds/champion_music.mp3'),
-      spin: new Audio('assets/sounds/slot_sound.mp3'),
     };
     this.updateUi();
     this.bindUi();
@@ -271,19 +264,11 @@ class SlotMachine {
     this.locked = true;
     this.lockButtons(true);
     this.hideMultiplierBadge();
-    this.playSpinSound();
-
-    const forceWin = Math.random() < this.config.winBiasChance;
-    const forcedSymbol = forceWin
-      ? this.config.symbols[Math.floor(Math.random() * this.config.symbols.length)]
-      : null;
 
     const spinPromises = this.reels.map((reel, index) =>
       new Promise((resolve) => {
         setTimeout(() => {
-          reel
-            .spin(this.config.spinDurationMs + index * 120, forcedSymbol)
-            .then(resolve);
+          reel.spin(this.config.spinDurationMs + index * 120).then(resolve);
         }, index * this.config.spinStaggerMs);
       })
     );
@@ -352,14 +337,6 @@ class SlotMachine {
     if (!audio) return;
     audio.currentTime = 0;
     audio.volume = 0.85;
-    audio.play().catch(() => {});
-  }
-
-  playSpinSound() {
-    const audio = this.sounds.spin;
-    if (!audio) return;
-    audio.currentTime = 0;
-    audio.volume = 0.65;
     audio.play().catch(() => {});
   }
 
