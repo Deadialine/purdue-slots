@@ -21,14 +21,14 @@ const CONFIG = {
   cyclesPerSpin: 4,      // how many full symbol loops to complete before stopping
   easing: 'cubic-bezier(0.22, 0.68, 0.24, 1.02)',
   symbols: [
-    { name: 'Pete the Mascot', image: 'https://via.placeholder.com/240x240/2d2926/ffd700?text=Pete+Mascot' },
-    { name: 'Purdue "P" Logo', image: 'https://via.placeholder.com/240x240/000000/CFB991?text=Purdue+P' },
-    { name: 'Purdue Bell Tower', image: 'https://via.placeholder.com/240x240/2d2926/ffffff?text=Bell+Tower' },
-    { name: 'Engineering Fountain', image: 'https://via.placeholder.com/240x240/1c1b17/ffd700?text=Engineering+Fountain' },
-    { name: 'Unfinished Block "P"', image: 'https://via.placeholder.com/240x240/1b1a15/CFB991?text=Block+P' },
-    { name: 'Purdue Archway', image: 'https://via.placeholder.com/240x240/2b2926/ffefc5?text=Archway' },
-    { name: 'Lionhead Fountain', image: 'https://via.placeholder.com/240x240/1c1b19/f8e1a0?text=Lionhead+Fountain' },
-    { name: 'Purdue Water Tower', image: 'https://via.placeholder.com/240x240/2a2824/ffe9aa?text=Water+Tower' },
+    { name: 'Pete the Mascot', image: 'assets/images/pete.png' },
+    { name: 'Purdue "P" Logo', image: 'assets/images/plogo.png' },
+    { name: 'Purdue Bell Tower', image: 'assets/images/bell.png' },
+    { name: 'Engineering Fountain', image:'assets/images/engineering_fountain.png' },
+    { name: 'Unfinished Block "P"', image: 'assets/images/unfinished_p.png' },
+    { name: 'Purdue Archway', image: 'assets/images/arhway.png' },
+    { name: 'Lionhead Fountain', image: 'assets/images/lionhead_fountain.png' },
+    { name: 'Purdue Water Tower', image: 'assets/images/water_tower.png' },
   ],
   // Base payout multipliers (3 of a kind)
   payoutMultipliers: {
