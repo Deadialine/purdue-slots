@@ -1,4 +1,4 @@
-import { CONFIG, dollars } from './config.js';
+import { dollars } from './config.js';
 import { createStore } from './store.js';
 import { ReelSet } from './reels.js';
 
@@ -11,7 +11,9 @@ const sounds = {
   medium: new Audio('assets/sounds/win_medium.mp3'),
   big: new Audio('assets/sounds/win_big.mp3'),
   champion: new Audio('assets/sounds/champion_music.mp3'),
+  spin: new Audio('assets/sounds/slot_sound.mp3'),
 };
+
 const refs = {};
 
 const cacheRefs = () => {
@@ -39,8 +41,15 @@ const initReels = (state) => {
   reels.renderStatic(state.lastSymbols);
 };
 
+const playSpinSound = () => {
+  const audio = sounds.spin;
+  audio.currentTime = 0;
+  audio.play().catch(() => {});
+};
+
 const handleSpin = ({ targets }) => {
   if (!reels) return;
+  playSpinSound();
   reels.spinToTargets(targets);
 };
 
@@ -57,16 +66,16 @@ const playWinSound = (amount) => {
 };
 
 const launchConfetti = () => {
-  if (!refs.celebration) return;
   const layer = refs.celebration;
+  if (!layer) return;
   layer.innerHTML = '';
   for (let i = 0; i < 28; i += 1) {
-    const node = document.createElement('div');
-    node.className = `confetti-piece ${i % 2 === 0 ? 'gold' : 'dark'}`;
-    node.style.left = `${Math.random() * 100}%`;
-    node.style.animationDelay = `${Math.random() * 0.4}s`;
-    layer.appendChild(node);
-    setTimeout(() => node.remove(), 2000);
+    const piece = document.createElement('div');
+    piece.className = `confetti-piece ${i % 2 === 0 ? 'gold' : 'dark'}`;
+    piece.style.left = `${Math.random() * 100}%`;
+    piece.style.animationDelay = `${Math.random() * 0.45}s`;
+    layer.appendChild(piece);
+    setTimeout(() => piece.remove(), 2000);
   }
 };
 
@@ -82,6 +91,8 @@ const celebrateWin = (state) => {
 window.addEventListener('DOMContentLoaded', () => {
   cacheRefs();
   initReels(store.getState());
+  document.body.classList.add('display-mode');
+
   store.subscribe((state) => {
     renderHud(state);
     if (!state.spinning && state.lastSymbols) {
@@ -89,11 +100,6 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     celebrateWin(state);
   });
+
   store.onSpin(handleSpin);
-
-  document.body.classList.add('display-mode');
-
-  const light = document.createElement('div');
-  light.className = 'light-strip';
-  document.querySelector('.machine-shell').appendChild(light);
 });
