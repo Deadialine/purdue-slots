@@ -6,14 +6,18 @@ const STORAGE_KEY = 'purdue-slot-state';
 const randomId = () => Math.random().toString(36).slice(2);
 const findSymbol = (name) => CONFIG.symbols.find((s) => s.name === name) || CONFIG.symbols[0];
 
-const defaultSymbols = () => {
-  const names = [];
-  for (let i = 0; i < 3; i += 1) {
-    const symbol = CONFIG.symbols[Math.floor(Math.random() * CONFIG.symbols.length)];
-    names.push(symbol.name);
-  }
-  return names;
+const windowForSymbol = (name) => {
+  const len = CONFIG.symbols.length;
+  const index = CONFIG.symbols.findIndex((s) => s.name === name);
+  const safeIndex = index >= 0 ? index : 0;
+  const top = CONFIG.symbols[(safeIndex - 1 + len) % len].name;
+  const bottom = CONFIG.symbols[(safeIndex + 1) % len].name;
+  return [top, name, bottom];
 };
+
+const defaultSymbols = () => (
+  Array.from({ length: 3 }, () => windowForSymbol(CONFIG.symbols[Math.floor(Math.random() * CONFIG.symbols.length)].name))
+);
 
 const sanitizeState = (rawState) => {
   if (!rawState || typeof rawState !== 'object') return null;
@@ -32,7 +36,11 @@ const sanitizeState = (rawState) => {
     autoSpinInterval: safeNumber(rawState.autoSpinInterval, CONFIG.autoSpinIntervalDefault, 100),
     totalWinnings: safeNumber(rawState.totalWinnings, 0),
     lastSymbols: Array.isArray(rawState.lastSymbols) && rawState.lastSymbols.length === 3
-      ? rawState.lastSymbols
+      ? rawState.lastSymbols.map((entry) => {
+        if (Array.isArray(entry) && entry.length === CONFIG.visibleSymbols) return entry;
+        if (typeof entry === 'string') return windowForSymbol(entry);
+        return windowForSymbol(CONFIG.symbols[0].name);
+      })
       : defaultSymbols(),
     lastSpinId: typeof rawState.lastSpinId === 'string' ? rawState.lastSpinId : null,
     // Always start fresh on page load so controls aren't stuck disabled
@@ -63,23 +71,29 @@ const rollMultiplier = () => {
   return 1;
 };
 
-const calculatePayout = (symbols, effectiveBet) => {
-  const [a, b, c] = symbols.map(findSymbol);
-  const same = a.name === b.name && b.name === c.name;
+const calculatePayout = (windows, effectiveBet) => {
+  const middleRow = windows.map((window) => findSymbol(window[1]));
+  const same = middleRow.every((symbol, idx, arr) => symbol.name === arr[0].name);
   if (!same) return 0;
-  const multiplier = CONFIG.payoutMultipliers[a.name] ?? 5;
+  const multiplier = CONFIG.payoutMultipliers[middleRow[0].name] ?? 5;
   return multiplier * effectiveBet;
 };
 
 const pickTargets = (winBias) => {
-  const biased = Math.random() < winBias;
-  if (biased) {
+  const winningRoll = Math.random() < winBias;
+  if (winningRoll) {
     const winner = CONFIG.symbols[Math.floor(Math.random() * CONFIG.symbols.length)];
     return [winner.name, winner.name, winner.name];
   }
-  return [0, 1, 2].map(
+
+  const reels = [0, 1, 2].map(
     () => CONFIG.symbols[Math.floor(Math.random() * CONFIG.symbols.length)].name,
   );
+  if (reels[0] === reels[1] && reels[1] === reels[2]) {
+    const alternative = CONFIG.symbols.find((s) => s.name !== reels[0]);
+    reels[2] = alternative ? alternative.name : reels[2];
+  }
+  return reels;
 };
 
 export const createStore = () => {
@@ -230,6 +244,7 @@ export const createStore = () => {
     }
 
     const targets = pickTargets(CONFIG.winBiasChance);
+    const windows = targets.map(windowForSymbol);
     const spinId = randomId();
     const nextBalance = state.balance - cost;
 
@@ -241,10 +256,10 @@ export const createStore = () => {
       lastMessage: 'Spinning...',
     });
 
-    broadcastSpin({ targets, spinId });
+    broadcastSpin({ targets, spinId, windows });
 
     const settle = () => {
-      const baseWin = calculatePayout(targets, cost);
+      const baseWin = calculatePayout(windows, cost);
       const multiplier = baseWin > 0 ? rollMultiplier() : 1;
       const payout = baseWin * multiplier;
       const finalBalance = getState().balance + payout;
@@ -257,7 +272,7 @@ export const createStore = () => {
           : 'No win. Try again!',
         spinning: false,
         totalWinnings: state.totalWinnings + payout,
-        lastSymbols: targets,
+        lastSymbols: windows,
         lastSpinId: spinId,
       });
     };

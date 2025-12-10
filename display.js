@@ -4,7 +4,29 @@ import { ReelSet } from './reels.js';
 
 const store = createStore();
 let reels;
+let lastRenderedWindowKey = '';
 let lastCelebratedSpinId = null;
+
+const normalizeWindow = (entry) => {
+  if (Array.isArray(entry) && entry.length === CONFIG.visibleSymbols) {
+    return entry.map((name) => {
+      const exists = CONFIG.symbols.find((s) => s.name === name);
+      return exists ? name : CONFIG.symbols[0].name;
+    });
+  }
+  return [
+    CONFIG.symbols[CONFIG.symbols.length - 1].name,
+    CONFIG.symbols[0].name,
+    CONFIG.symbols[1 % CONFIG.symbols.length].name,
+  ];
+};
+
+const normalizeWindows = (windows) => {
+  if (!Array.isArray(windows) || windows.length !== 3) {
+    return [0, 1, 2].map(() => normalizeWindow());
+  }
+  return windows.map((win) => normalizeWindow(win));
+};
 
 const sounds = {
   small: new Audio('assets/sounds/win_small.mp3'),
@@ -14,6 +36,11 @@ const sounds = {
 };
 const refs = {};
 
+const addTempClass = (target, className, duration = 800) => {
+  target.classList.add(className);
+  setTimeout(() => target.classList.remove(className), duration);
+};
+
 const cacheRefs = () => {
   refs.balance = document.getElementById('balance');
   refs.cost = document.getElementById('cost');
@@ -22,6 +49,7 @@ const cacheRefs = () => {
   refs.multiplier = document.getElementById('multiplier');
   refs.total = document.getElementById('total');
   refs.celebration = document.getElementById('celebration-layer');
+  refs.body = document.body;
 };
 
 const renderHud = (state) => {
@@ -34,14 +62,64 @@ const renderHud = (state) => {
   refs.total.textContent = dollars(state.totalWinnings || 0);
 };
 
-const initReels = (state) => {
-  reels = new ReelSet(document.querySelector('.slot-window'));
-  reels.renderStatic(state.lastSymbols);
+const renderReels = (state) => {
+  if (!reels) return;
+  const windows = normalizeWindows(state.lastSymbols);
+  const key = JSON.stringify(windows);
+  if (key === lastRenderedWindowKey) return;
+  reels.renderStatic(windows);
+  lastRenderedWindowKey = key;
 };
 
-const handleSpin = ({ targets }) => {
+const initReels = (state) => {
+  reels = new ReelSet(document.querySelector('.slot-window'));
+  lastRenderedWindowKey = '';
+  renderReels(state);
+};
+
+const handleSpin = ({ targets, windows }) => {
   if (!reels) return;
-  reels.spinToTargets(targets);
+  const normalized = normalizeWindows(windows);
+  lastRenderedWindowKey = JSON.stringify(normalized);
+  reels.spinToTargets(targets, normalized);
+};
+
+const triggerBoilerGoldFlash = () => {
+  if (!refs.celebration || !refs.body) return;
+  const overlay = document.createElement('div');
+  overlay.className = 'boiler-flash-overlay';
+  refs.celebration.appendChild(overlay);
+  addTempClass(refs.body, 'gold-outline-pulse', 1200);
+  setTimeout(() => overlay.remove(), 1000);
+};
+
+const triggerScreenShake = (duration = 450) => {
+  if (!refs.body) return;
+  addTempClass(refs.body, 'screen-shake', duration);
+};
+
+const launchPRain = () => {
+  if (!refs.celebration) return;
+  const drops = 32;
+  for (let i = 0; i < drops; i += 1) {
+    const drop = document.createElement('div');
+    drop.className = 'p-rain-drop';
+    drop.style.left = `${Math.random() * 100}%`;
+    drop.style.animationDuration = `${1.8 + Math.random() * 1.2}s`;
+    drop.style.animationDelay = `${Math.random() * 0.5}s`;
+    drop.style.setProperty('--drift', `${Math.random() * 120 - 60}px`);
+    refs.celebration.appendChild(drop);
+    setTimeout(() => drop.remove(), 3200);
+  }
+};
+
+const launchBoilermakerTrain = () => {
+  if (!refs.celebration) return;
+  const train = document.createElement('div');
+  train.className = 'boilermaker-train';
+  refs.celebration.appendChild(train);
+  requestAnimationFrame(() => train.classList.add('run'));
+  setTimeout(() => train.remove(), 5200);
 };
 
 const playWinSound = (amount) => {
@@ -73,8 +151,16 @@ const launchConfetti = () => {
 const celebrateWin = (state) => {
   if (!state.lastSpinId || state.lastSpinId === lastCelebratedSpinId) return;
   if (state.lastWin > 0) {
+    const costPerSpin = Math.max(1, state.currentBet * state.betMultiplier);
+    const normalizedWin = state.lastWin / costPerSpin;
+
     playWinSound(state.lastWin);
     launchConfetti();
+    triggerBoilerGoldFlash();
+
+    if (state.lastWin >= 5 || normalizedWin >= 5) triggerScreenShake();
+    if (state.lastWin >= 10 || normalizedWin >= 8) launchPRain();
+    if (state.lastWin >= 20 || normalizedWin >= 12) launchBoilermakerTrain();
   }
   lastCelebratedSpinId = state.lastSpinId;
 };
@@ -86,9 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   store.subscribe((state) => {
     renderHud(state);
-    if (!state.spinning && state.lastSymbols) {
-      reels.renderStatic(state.lastSymbols.map((name) => name));
-    }
+    renderReels(state);
     celebrateWin(state);
   });
   store.onSpin(handleSpin);
