@@ -110,17 +110,6 @@ const startAutoSpin = (skipStateUpdate = false) => {
     }
   }, interval);
   refs.autoSpinStatus.textContent = `Auto spin is ON (every ${interval}ms)`;
-  const interval = parseInt(refs.autoSpinInterval.value, 10) || 1200;
-  if (!skipStateUpdate) {
-    store.setAutoSpin(true);
-  }
-  clearInterval(autoSpinTimer);
-  autoSpinTimer = setInterval(() => {
-    if (!store.getState().spinning) {
-      store.spin();
-    }
-  }, interval);
-  refs.autoSpinStatus.textContent = `Auto spin running every ${interval}ms`;
   refs.autoSpinToggle.textContent = 'Stop Auto Spin';
   refs.autoSpinToggle.classList.add('toggled');
 };
@@ -144,27 +133,23 @@ const toggleAutoSpin = () => {
   }
 };
 
+const handleAddBalance = (rawAmount) => {
+  const source = rawAmount ?? refs.addBalanceInput.value;
+  const added = store.addBalance(source);
+  if (added) {
+    refs.addBalanceInput.value = '';
+  }
+};
+
 const bindEvents = () => {
   refs.spin.addEventListener('click', () => store.spin());
   refs.reset.addEventListener('click', () => {
     stopAutoSpin();
     store.reset();
   });
-  refs.addBalanceButton.addEventListener('click', () => {
-    const amount = parseFloat(refs.addBalanceInput.value) || 0;
-    if (amount > 0) {
-      store.addBalance(amount);
-      refs.addBalanceInput.value = '';
-    } else {
-      store.addBalance(NaN);
-    }
-    if (amount > 0) store.addBalance(amount);
-  });
+  refs.addBalanceButton.addEventListener('click', () => handleAddBalance(refs.addBalanceInput.value));
   refs.quickAddButtons.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const amount = parseFloat(btn.dataset.add);
-      store.addBalance(amount);
-    });
+    btn.addEventListener('click', () => handleAddBalance(btn.dataset.add || btn.textContent));
   });
   refs.openDisplay.addEventListener('click', openDisplayWindow);
   refs.autoSpinToggle.addEventListener('click', toggleAutoSpin);
