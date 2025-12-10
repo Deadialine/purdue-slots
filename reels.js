@@ -21,26 +21,33 @@ export class Reel {
     this.currentStops = symbolNames;
   }
 
-  buildSequence(targetIndex, cycles) {
-    const { visibleSymbols } = CONFIG;
+  buildSequence(targetIndex, cycles, finalWindow) {
     const sequence = [...this.currentStops];
     const len = CONFIG.symbols.length;
     const totalItems = cycles * len;
     for (let i = 0; i < totalItems; i += 1) {
       sequence.push(CONFIG.symbols[i % len]);
     }
-    for (let i = visibleSymbols; i > 0; i -= 1) {
-      sequence.push(CONFIG.symbols[(targetIndex - (visibleSymbols - i) + len) % len]);
-    }
+    finalWindow.forEach((name) => {
+      const symbol = CONFIG.symbols.find((s) => s.name === name) || CONFIG.symbols[targetIndex];
+      sequence.push(symbol);
+    });
     return sequence;
   }
 
-  spinTo(symbolName, duration) {
+  spinTo(symbolName, duration, finalWindow) {
     return new Promise((resolve) => {
       const len = CONFIG.symbols.length;
       const targetIndex = CONFIG.symbols.findIndex((s) => s.name === symbolName);
       const safeIndex = targetIndex >= 0 ? targetIndex : Math.floor(Math.random() * len);
-      const sequence = this.buildSequence(safeIndex, CONFIG.cyclesPerSpin);
+      const safeWindow = Array.isArray(finalWindow) && finalWindow.length === CONFIG.visibleSymbols
+        ? finalWindow
+        : [
+          CONFIG.symbols[(safeIndex - 1 + len) % len].name,
+          CONFIG.symbols[safeIndex].name,
+          CONFIG.symbols[(safeIndex + 1) % len].name,
+        ];
+      const sequence = this.buildSequence(safeIndex, CONFIG.cyclesPerSpin, safeWindow);
       this.track.innerHTML = '';
       sequence.forEach((symbol) => {
         const node = document.createElement('div');
@@ -62,8 +69,8 @@ export class Reel {
 
       const cleanup = () => {
         this.track.removeEventListener('transitionend', cleanup);
-        const finalWindow = sequence.slice(sequence.length - CONFIG.visibleSymbols);
-        this.currentStops = finalWindow.map((s) => s.name);
+        const restingWindow = sequence.slice(sequence.length - CONFIG.visibleSymbols);
+        this.currentStops = restingWindow.map((s) => s.name);
         this.renderStatic(this.currentStops);
         resolve(this.currentStops);
       };
@@ -80,16 +87,21 @@ export class ReelSet {
 
   renderStatic(symbolNames) {
     this.reels.forEach((reel, idx) => {
-      const symbolsForReel = symbolNames[idx] ? [symbolNames[idx], symbolNames[idx], symbolNames[idx]] : symbolNames;
+      const symbolsForReel = Array.isArray(symbolNames[idx])
+        ? symbolNames[idx]
+        : Array.isArray(symbolNames)
+          ? symbolNames
+          : [];
       reel.renderStatic(symbolsForReel);
     });
   }
 
-  spinToTargets(targets) {
+  spinToTargets(targets, windows) {
     const promises = this.reels.map((reel, index) => (
       new Promise((resolve) => {
         setTimeout(() => {
-          reel.spinTo(targets[index], CONFIG.spinDurationMs + index * 120).then(resolve);
+          const finalWindow = Array.isArray(windows?.[index]) ? windows[index] : null;
+          reel.spinTo(targets[index], CONFIG.spinDurationMs + index * 120, finalWindow).then(resolve);
         }, index * CONFIG.spinStaggerMs);
       })
     ));
