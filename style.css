@@ -595,6 +595,21 @@ body.display-mode {
   z-index: 5;
 }
 
+.boiler-gold-flash {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at 50% 40%, rgba(207, 185, 145, 0.9), rgba(207, 185, 145, 0.6));
+  box-shadow: 0 0 40px 20px rgba(207, 185, 145, 0.35);
+  pointer-events: none;
+  animation: boilerFlash 0.9s ease-out forwards;
+}
+
+.flash-outline {
+  animation: outlinePulse 0.9s ease-in-out;
+  box-shadow: 0 0 0 2px rgba(207, 185, 145, 0.5), 0 0 18px rgba(207, 185, 145, 0.65);
+  border-radius: 10px;
+}
+
 .confetti-piece {
   position: absolute;
   width: 10px;
@@ -629,6 +644,18 @@ body.display-mode {
   100% { opacity: 0; transform: scale(1.8) translateY(-30px); }
 }
 
+@keyframes boilerFlash {
+  0% { opacity: 0; }
+  10% { opacity: 0.95; }
+  40% { opacity: 0.7; }
+  100% { opacity: 0; }
+}
+
+@keyframes outlinePulse {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(207, 185, 145, 0.35), 0 0 10px rgba(207, 185, 145, 0.45); }
+  50% { box-shadow: 0 0 0 4px rgba(207, 185, 145, 0.8), 0 0 22px rgba(207, 185, 145, 0.85); }
+}
+
 .vignette {
   position: absolute;
   inset: 0;
@@ -649,12 +676,25 @@ body.display-mode {
   animation: shake 0.6s ease-in-out 2;
 }
 
+body.screen-shake {
+  animation: screenShake 0.4s ease-in-out;
+}
+
 @keyframes shake {
   0%, 100% { transform: translate3d(0, 0, 0); }
   20% { transform: translate3d(-6px, 2px, 0); }
   40% { transform: translate3d(6px, -2px, 0); }
   60% { transform: translate3d(-4px, 4px, 0); }
   80% { transform: translate3d(4px, -4px, 0); }
+}
+
+@keyframes screenShake {
+  0% { transform: translate3d(0, 0, 0); }
+  20% { transform: translate3d(-8px, 2px, 0); }
+  40% { transform: translate3d(8px, -2px, 0); }
+  60% { transform: translate3d(-6px, 4px, 0); }
+  80% { transform: translate3d(6px, -4px, 0); }
+  100% { transform: translate3d(0, 0, 0); }
 }
 
 .slogan-banner {
