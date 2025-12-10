@@ -1,196 +1,136 @@
-import { CONFIG, dollars } from './config.js';
-import { createStore } from './store.js';
+import { CONFIG } from './config.js';
+import { createSharedGame } from './store.js';
 
-const store = createStore();
-const refs = {};
+const game = createSharedGame();
 let autoSpinTimer = null;
 
-const cacheRefs = () => {
-  refs.balance = document.getElementById('balance');
-  refs.result = document.getElementById('result');
-  refs.cost = document.getElementById('cost');
-  refs.lastWin = document.getElementById('last-win');
-  refs.multiplier = document.getElementById('multiplier');
-  refs.total = document.getElementById('total');
-  refs.betOptions = document.getElementById('bet-options');
-  refs.multiplierOptions = document.getElementById('multiplier-options');
-  refs.spin = document.getElementById('spin');
-  refs.reset = document.getElementById('reset');
-  refs.addBalanceInput = document.getElementById('add-balance');
-  refs.addBalanceButton = document.getElementById('add-balance-btn');
-  refs.quickAddButtons = Array.from(document.querySelectorAll('[data-add]'));
-  refs.openDisplay = document.getElementById('open-display');
-  refs.autoSpinToggle = document.getElementById('auto-spin-toggle');
-  refs.autoSpinInterval = document.getElementById('auto-spin-interval');
-  refs.autoSpinStatus = document.getElementById('auto-spin-status');
+const elements = {
+  balance: document.getElementById('balance'),
+  result: document.getElementById('result'),
+  cost: document.getElementById('cost'),
+  lastWin: document.getElementById('last-win'),
+  multiplier: document.getElementById('multiplier'),
+  total: document.getElementById('total'),
+  addInput: document.getElementById('add-balance'),
+  addButton: document.getElementById('add-balance-btn'),
+  quickButtons: document.querySelectorAll('[data-add]'),
+  betOptions: document.getElementById('bet-options'),
+  multiplierOptions: document.getElementById('multiplier-options'),
+  spinButton: document.getElementById('spin'),
+  resetButton: document.getElementById('reset'),
+  displayButton: document.getElementById('open-display'),
+  autoToggle: document.getElementById('auto-spin-toggle'),
+  autoStatus: document.getElementById('auto-spin-status'),
+  autoInterval: document.getElementById('auto-spin-interval'),
+  slogan: document.getElementById('slogan-banner'),
 };
 
-const renderHud = (state) => {
-  const costPerSpin = state.currentBet * state.betMultiplier;
-  refs.balance.textContent = dollars(state.balance);
-  refs.cost.textContent = `${dollars(costPerSpin)} (Bet ${dollars(state.currentBet)} x${state.betMultiplier})`;
-  refs.result.textContent = state.lastMessage;
-  refs.lastWin.textContent = state.lastWin > 0 ? dollars(state.lastWin) : '$0.00';
-  refs.multiplier.textContent = `x${state.lastMultiplier}`;
-  refs.total.textContent = dollars(state.totalWinnings || 0);
-};
+const formatMoney = (value) => `$${value.toFixed(2)}`;
 
-const renderBetOptions = (state) => {
-  refs.betOptions.innerHTML = '';
-  CONFIG.betOptions.forEach((bet) => {
-    const option = document.createElement('label');
-    option.className = 'bet-option';
-
-    const input = document.createElement('input');
-    input.type = 'radio';
-    input.name = 'bet';
-    input.value = bet;
-    input.checked = bet === state.currentBet;
-    input.addEventListener('change', () => store.setBet(bet));
-
-    const text = document.createElement('span');
-    text.textContent = dollars(bet);
-
-    option.appendChild(input);
-    option.appendChild(text);
-    if (input.checked) option.classList.add('active');
-    refs.betOptions.appendChild(option);
+const createToggleButtons = (container, values, onSelect, prefix = '$', suffix = '') => {
+  container.innerHTML = '';
+  values.forEach((value, idx) => {
+    const btn = document.createElement('button');
+    btn.className = 'chip';
+    btn.type = 'button';
+    btn.textContent = `${prefix}${value}${suffix}`;
+    btn.dataset.value = value;
+    btn.setAttribute('aria-pressed', 'false');
+    btn.addEventListener('click', () => onSelect(Number(value)));
+    if (idx === 0) btn.classList.add('active');
+    container.appendChild(btn);
   });
 };
 
-const renderMultiplierOptions = (state) => {
-  refs.multiplierOptions.innerHTML = '';
-  [1, 2, 3].forEach((value) => {
-    const option = document.createElement('label');
-    option.className = 'bet-option';
-
-    const input = document.createElement('input');
-    input.type = 'radio';
-    input.name = 'bet-multiplier';
-    input.value = value;
-    input.checked = value === state.betMultiplier;
-    input.addEventListener('change', () => store.setBetMultiplier(value));
-
-    const text = document.createElement('span');
-    text.textContent = `x${value}`;
-
-    option.appendChild(input);
-    option.appendChild(text);
-    if (input.checked) option.classList.add('active');
-    refs.multiplierOptions.appendChild(option);
+const syncSelection = (container, value) => {
+  container.querySelectorAll('button').forEach((btn) => {
+    const match = Number(btn.dataset.value) === Number(value);
+    btn.classList.toggle('active', match);
+    btn.setAttribute('aria-pressed', match ? 'true' : 'false');
   });
 };
 
-const openDisplayWindow = () => {
-  const displayUrl = new URL('./display.html', window.location.href).toString();
-  window.open(displayUrl, 'purdue-display', 'noopener,width=1280,height=720');
-};
+createToggleButtons(elements.betOptions, CONFIG.betOptions, (value) => {
+  game.setBet(value);
+});
 
-const startAutoSpin = (skipStateUpdate = false) => {
-  const rawInterval = parseInt(refs.autoSpinInterval.value, 10);
-  const interval = rawInterval > 0 ? rawInterval : store.getState().autoSpinInterval || CONFIG.autoSpinIntervalDefault;
-  if (!skipStateUpdate) {
-    store.setAutoSpin(true);
-    store.setAutoSpinInterval(interval);
+createToggleButtons(elements.multiplierOptions, CONFIG.multiplierOptions, (value) => {
+  game.setMultiplier(value);
+});
+
+elements.addButton.addEventListener('click', () => {
+  game.addCredits(Number(elements.addInput.value || 0));
+  elements.addInput.value = '';
+});
+
+elements.quickButtons.forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const value = Number(btn.dataset.add || 0);
+    game.addCredits(value);
+  });
+});
+
+elements.resetButton.addEventListener('click', () => game.reset());
+
+elements.displayButton.addEventListener('click', () => {
+  window.open('./display.html', 'purdue-slot-display');
+});
+
+elements.spinButton.addEventListener('click', () => {
+  game.startSpin();
+});
+
+elements.autoToggle.addEventListener('click', () => {
+  const toggled = elements.autoToggle.classList.toggle('active');
+  game.setAutoSpin(toggled);
+  handleAutoSpin(toggled);
+});
+
+elements.autoInterval.addEventListener('change', (event) => {
+  const value = Number(event.target.value);
+  if (!Number.isFinite(value)) return;
+  const safe = Math.max(CONFIG.minAutoSpinInterval, value);
+  event.target.value = safe;
+  game.setAutoSpinInterval(safe);
+  if (elements.autoToggle.classList.contains('active')) handleAutoSpin(true);
+});
+
+const handleAutoSpin = (active) => {
+  if (autoSpinTimer) {
+    clearInterval(autoSpinTimer);
+    autoSpinTimer = null;
   }
-  clearInterval(autoSpinTimer);
-  autoSpinTimer = setInterval(() => {
-    const state = store.getState();
-    const cost = state.currentBet * state.betMultiplier;
-    if (state.balance < cost) {
-      stopAutoSpin();
-      refs.autoSpinStatus.textContent = 'Auto spin stopped: insufficient balance.';
-      return;
-    }
-    if (!state.spinning) {
-      const result = store.spin();
-      if (!result && state.balance < cost) {
-        stopAutoSpin();
-        refs.autoSpinStatus.textContent = 'Auto spin stopped: insufficient balance.';
-      }
-    }
-  }, interval);
-  refs.autoSpinStatus.textContent = `Auto spin is ON (every ${interval}ms)`;
-  refs.autoSpinToggle.textContent = 'Stop Auto Spin';
-  refs.autoSpinToggle.classList.add('toggled');
+  if (!active) return;
+  const interval = Math.max(CONFIG.minAutoSpinInterval, Number(elements.autoInterval.value));
+  autoSpinTimer = setInterval(() => game.startSpin(), interval);
 };
 
-const stopAutoSpin = (skipStateUpdate = false) => {
-  if (!skipStateUpdate) {
-    store.setAutoSpin(false);
-  }
-  clearInterval(autoSpinTimer);
-  autoSpinTimer = null;
-  refs.autoSpinStatus.textContent = 'Auto spin is off';
-  refs.autoSpinToggle.textContent = 'Auto Spin';
-  refs.autoSpinToggle.classList.remove('toggled');
+const updateView = (state) => {
+  const wager = state.bet * state.multiplier;
+  elements.balance.textContent = formatMoney(state.credits);
+  elements.result.textContent = state.lastResult;
+  elements.cost.textContent = `${formatMoney(state.bet)} / x${state.multiplier} (${formatMoney(wager)})`;
+  elements.lastWin.textContent = formatMoney(state.lastWin);
+  elements.multiplier.textContent = `x${state.multiplier}`;
+  elements.total.textContent = formatMoney(state.totalWon);
+  syncSelection(elements.betOptions, state.bet);
+  syncSelection(elements.multiplierOptions, state.multiplier);
+  elements.spinButton.disabled = state.spinning;
+  elements.autoToggle.classList.toggle('active', state.autoSpin);
+  elements.autoStatus.textContent = state.autoSpin
+    ? `Auto spin every ${state.autoSpinInterval} ms`
+    : 'Auto spin is off';
 };
 
-const toggleAutoSpin = () => {
-  if (store.getState().autoSpin) {
-    stopAutoSpin();
+game.subscribe(updateView);
+
+game.onSpin((payload) => {
+  if (payload.type !== 'settle') return;
+  if (payload.payout > 0) {
+    elements.slogan.textContent = 'Boiler Up! Jackpot!';
+    elements.slogan.classList.add('flash');
+    setTimeout(() => elements.slogan.classList.remove('flash'), 900);
   } else {
-    startAutoSpin();
+    elements.slogan.textContent = 'Keep pushing!';
   }
-};
-
-const handleAddBalance = (rawAmount) => {
-  if (!refs.addBalanceInput) return;
-  const source = rawAmount ?? refs.addBalanceInput.value;
-  const added = store.addBalance(source);
-  if (added) {
-    refs.addBalanceInput.value = '';
-  }
-};
-
-const bindEvents = () => {
-  if (refs.spin) refs.spin.addEventListener('click', () => store.spin());
-  if (refs.reset) {
-    refs.reset.addEventListener('click', () => {
-      stopAutoSpin();
-      store.reset();
-    });
-  }
-  if (refs.addBalanceButton) {
-    refs.addBalanceButton.addEventListener('click', () => handleAddBalance(refs.addBalanceInput?.value));
-  }
-  refs.quickAddButtons.forEach((btn) => {
-    btn.addEventListener('click', () => handleAddBalance(btn.dataset.add || btn.textContent));
-  });
-  if (refs.openDisplay) refs.openDisplay.addEventListener('click', openDisplayWindow);
-  if (refs.autoSpinToggle) refs.autoSpinToggle.addEventListener('click', toggleAutoSpin);
-  if (refs.autoSpinInterval) {
-    refs.autoSpinInterval.addEventListener('change', () => {
-      const raw = parseInt(refs.autoSpinInterval.value, 10);
-      if (raw > 0) {
-        store.setAutoSpinInterval(raw);
-      }
-    });
-  }
-};
-
-window.addEventListener('DOMContentLoaded', () => {
-  cacheRefs();
-  renderHud(store.getState());
-  renderBetOptions(store.getState());
-  renderMultiplierOptions(store.getState());
-  if (refs.autoSpinInterval) {
-    refs.autoSpinInterval.value = store.getState().autoSpinInterval || CONFIG.autoSpinIntervalDefault;
-  }
-  bindEvents();
-
-  store.subscribe((state) => {
-    renderHud(state);
-    renderBetOptions(state);
-    renderMultiplierOptions(state);
-    if (refs.spin) refs.spin.disabled = state.spinning;
-    if (state.autoSpin && !autoSpinTimer) {
-      startAutoSpin(true);
-    }
-    if (!state.autoSpin && autoSpinTimer) {
-      stopAutoSpin(true);
-    }
-  });
-
-  document.body.classList.add('control-mode');
 });
