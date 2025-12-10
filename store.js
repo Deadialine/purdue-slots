@@ -151,7 +151,7 @@ export const createStore = () => {
   const addBalance = (amount) => {
     const normalized = (() => {
       if (typeof amount === 'string') {
-        const cleaned = amount.replace(/[^0-9.+-]/g, '');
+        const cleaned = amount.trim().replace(/[^0-9.+-]/g, '');
         const parsed = Number.parseFloat(cleaned);
         return Number.isFinite(parsed) ? parsed : NaN;
       }
@@ -162,10 +162,11 @@ export const createStore = () => {
     const safeAmount = normalized > 0 ? Math.round(normalized * 100) / 100 : 0;
     if (!safeAmount) {
       applyState({ lastMessage: 'Enter a valid amount to add.' });
-      return;
+      return false;
     }
     const nextBalance = Math.round((state.balance + safeAmount) * 100) / 100;
     applyState({ balance: nextBalance, lastMessage: `Added $${safeAmount.toFixed(2)}. Ready to spin!` });
+    return true;
   };
 
   const setAutoSpin = (active) => applyState({ autoSpin: !!active });

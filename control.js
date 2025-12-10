@@ -134,8 +134,11 @@ const toggleAutoSpin = () => {
 };
 
 const handleAddBalance = (rawAmount) => {
-  store.addBalance(rawAmount);
-  refs.addBalanceInput.value = '';
+  const source = rawAmount ?? refs.addBalanceInput.value;
+  const added = store.addBalance(source);
+  if (added) {
+    refs.addBalanceInput.value = '';
+  }
 };
 
 const bindEvents = () => {
@@ -145,7 +148,9 @@ const bindEvents = () => {
     store.reset();
   });
   refs.addBalanceButton.addEventListener('click', () => handleAddBalance(refs.addBalanceInput.value));
-  refs.quickAddButtons.forEach((btn) => btn.addEventListener('click', () => handleAddBalance(btn.dataset.add)));
+  refs.quickAddButtons.forEach((btn) => {
+    btn.addEventListener('click', () => handleAddBalance(btn.dataset.add || btn.textContent));
+  });
   refs.openDisplay.addEventListener('click', openDisplayWindow);
   refs.autoSpinToggle.addEventListener('click', toggleAutoSpin);
   refs.autoSpinInterval.addEventListener('change', () => {
