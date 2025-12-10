@@ -295,6 +295,22 @@ body.display-mode {
   z-index: 2;
 }
 
+.slot-window::after {
+  content: '';
+  position: absolute;
+  left: clamp(10px, 1.5vw, 18px);
+  right: clamp(10px, 1.5vw, 18px);
+  top: 50%;
+  height: calc(var(--symbol-size) + 28px);
+  transform: translateY(-50%);
+  border: 2px solid var(--gold);
+  border-radius: 14px;
+  box-shadow: 0 0 12px rgba(207, 185, 145, 0.55), 0 0 24px rgba(207, 185, 145, 0.25);
+  background: radial-gradient(circle at 50% 50%, rgba(207, 185, 145, 0.08), rgba(207, 185, 145, 0.02));
+  pointer-events: none;
+  z-index: 2;
+}
+
 .reel {
   position: relative;
   height: 100%;
@@ -425,6 +441,14 @@ body.display-mode {
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+#auto-spin-toggle {
+  font-size: 22px;
+  padding: 20px 36px;
+  min-width: 220px;
+  letter-spacing: 0.5px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45), 0 0 16px rgba(207, 185, 145, 0.35);
 }
 
 #auto-spin-toggle {
@@ -595,6 +619,33 @@ body.display-mode {
   z-index: 5;
 }
 
+.boiler-flash-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 40%, rgba(207, 185, 145, 0.95), rgba(207, 185, 145, 0.7), rgba(207, 185, 145, 0));
+  mix-blend-mode: screen;
+  animation: boilerFlash 1s ease forwards;
+  z-index: 8;
+}
+
+body.gold-outline-pulse .slot-window,
+body.gold-outline-pulse #result {
+  box-shadow: 0 0 0 3px rgba(207, 185, 145, 0.8), 0 0 24px rgba(207, 185, 145, 0.5);
+  animation: outlinePulse 1.2s ease-in-out;
+}
+
+@keyframes boilerFlash {
+  0% { opacity: 0; }
+  12% { opacity: 0.95; }
+  100% { opacity: 0; }
+}
+
+@keyframes outlinePulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(207, 185, 145, 0.7), 0 0 12px rgba(207, 185, 145, 0.35); }
+  50% { box-shadow: 0 0 0 6px rgba(207, 185, 145, 0.9), 0 0 26px rgba(207, 185, 145, 0.7); }
+}
+
 .confetti-piece {
   position: absolute;
   width: 10px;
@@ -624,6 +675,51 @@ body.display-mode {
   animation: sparkle 1.2s ease-out forwards;
 }
 
+.p-rain-drop {
+  position: fixed;
+  top: -40px;
+  width: 38px;
+  height: 32px;
+  background: url('assets/logo.png') center/contain no-repeat;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.35));
+  pointer-events: none;
+  animation-name: pRain;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+  z-index: 9;
+}
+
+@keyframes pRain {
+  0% { transform: translate3d(0, 0, 0); opacity: 0; }
+  10% { opacity: 1; }
+  100% { transform: translate3d(var(--drift, 0px), 110vh, 0); opacity: 0; }
+}
+
+.boilermaker-train {
+  position: fixed;
+  bottom: 8px;
+  left: -260px;
+  width: 260px;
+  height: 140px;
+  background: url('assets/train.png') center/contain no-repeat;
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.45));
+  pointer-events: none;
+  z-index: 10;
+  transform: translateX(0) scale(0.98);
+  opacity: 0;
+}
+
+.boilermaker-train.run {
+  animation: trainRun 4.6s cubic-bezier(0.18, 0.62, 0.24, 0.99) forwards;
+}
+
+@keyframes trainRun {
+  0% { transform: translateX(0) scale(0.98); opacity: 0; }
+  8% { opacity: 1; }
+  60% { transform: translateX(110vw) scale(1); opacity: 1; }
+  100% { transform: translateX(140vw) scale(1.02); opacity: 0; }
+}
+
 @keyframes sparkle {
   0% { opacity: 1; transform: scale(0.5) translateY(0); }
   100% { opacity: 0; transform: scale(1.8) translateY(-30px); }
@@ -645,16 +741,17 @@ body.display-mode {
   100% { opacity: 0.15; }
 }
 
-.shake {
-  animation: shake 0.6s ease-in-out 2;
+body.screen-shake {
+  animation: screenShake 0.48s ease-in-out;
 }
 
-@keyframes shake {
+@keyframes screenShake {
   0%, 100% { transform: translate3d(0, 0, 0); }
-  20% { transform: translate3d(-6px, 2px, 0); }
-  40% { transform: translate3d(6px, -2px, 0); }
-  60% { transform: translate3d(-4px, 4px, 0); }
-  80% { transform: translate3d(4px, -4px, 0); }
+  15% { transform: translate3d(-10px, 4px, 0); }
+  30% { transform: translate3d(10px, -4px, 0); }
+  45% { transform: translate3d(-8px, 6px, 0); }
+  60% { transform: translate3d(8px, -6px, 0); }
+  75% { transform: translate3d(-5px, 4px, 0); }
 }
 
 .slogan-banner {
