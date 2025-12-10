@@ -411,6 +411,12 @@ body.display-mode {
   flex-wrap: wrap;
 }
 
+#auto-spin-toggle {
+  font-size: 20px;
+  padding: 16px 28px;
+  min-width: 180px;
+}
+
 .auto-spin-row label {
   width: 120px;
   font-size: 14px;
