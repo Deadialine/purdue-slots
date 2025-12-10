@@ -4,6 +4,9 @@ import { createStore } from './store.js';
 const store = createStore();
 const refs = {};
 let autoSpinTimer = null;
+const sounds = {
+  spin: new Audio('assets/sounds/slot_sound.mp3'),
+};
 
 const cacheRefs = () => {
   refs.balance = document.getElementById('balance');
@@ -21,7 +24,6 @@ const cacheRefs = () => {
   refs.quickAddButtons = Array.from(document.querySelectorAll('[data-add]'));
   refs.openDisplay = document.getElementById('open-display');
   refs.autoSpinToggle = document.getElementById('auto-spin-toggle');
-  refs.autoSpinInterval = document.getElementById('auto-spin-interval');
   refs.autoSpinStatus = document.getElementById('auto-spin-status');
 };
 
@@ -87,8 +89,7 @@ const openDisplayWindow = () => {
 };
 
 const startAutoSpin = (skipStateUpdate = false) => {
-  const rawInterval = parseInt(refs.autoSpinInterval.value, 10);
-  const interval = rawInterval > 0 ? rawInterval : store.getState().autoSpinInterval || CONFIG.autoSpinIntervalDefault;
+  const interval = store.getState().autoSpinInterval || CONFIG.autoSpinIntervalDefault;
   if (!skipStateUpdate) {
     store.setAutoSpin(true);
     store.setAutoSpinInterval(interval);
@@ -144,7 +145,15 @@ const handleAddBalance = (rawAmount) => {
 };
 
 const bindEvents = () => {
-  if (refs.spin) refs.spin.addEventListener('click', () => store.spin());
+  const playSpinSound = () => {
+    sounds.spin.currentTime = 0;
+    sounds.spin.play().catch(() => {});
+  };
+
+  if (refs.spin) refs.spin.addEventListener('click', () => {
+    playSpinSound();
+    store.spin();
+  });
   if (refs.reset) {
     refs.reset.addEventListener('click', () => {
       stopAutoSpin();
@@ -159,14 +168,6 @@ const bindEvents = () => {
   });
   if (refs.openDisplay) refs.openDisplay.addEventListener('click', openDisplayWindow);
   if (refs.autoSpinToggle) refs.autoSpinToggle.addEventListener('click', toggleAutoSpin);
-  if (refs.autoSpinInterval) {
-    refs.autoSpinInterval.addEventListener('change', () => {
-      const raw = parseInt(refs.autoSpinInterval.value, 10);
-      if (raw > 0) {
-        store.setAutoSpinInterval(raw);
-      }
-    });
-  }
 };
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -174,9 +175,6 @@ window.addEventListener('DOMContentLoaded', () => {
   renderHud(store.getState());
   renderBetOptions(store.getState());
   renderMultiplierOptions(store.getState());
-  if (refs.autoSpinInterval) {
-    refs.autoSpinInterval.value = store.getState().autoSpinInterval || CONFIG.autoSpinIntervalDefault;
-  }
   bindEvents();
 
   store.subscribe((state) => {
