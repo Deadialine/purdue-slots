@@ -3,57 +3,71 @@ import { CONFIG } from './config.js';
 const CHANNEL_NAME = 'purdue-slot-shared-state';
 const STORAGE_KEY = 'purdue-slot-state';
 
-const randomId = () => Math.random().toString(36).slice(2);
-const findSymbol = (name) => CONFIG.symbols.find((s) => s.name === name) || CONFIG.symbols[0];
+const randomId = () => (
+  typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2)
+);
 
-const defaultSymbols = () => {
-  const names = [];
-  for (let i = 0; i < 3; i += 1) {
+const pickRandomSymbols = (count = CONFIG.visibleSymbols) => {
+  const picks = [];
+  for (let i = 0; i < count; i += 1) {
     const symbol = CONFIG.symbols[Math.floor(Math.random() * CONFIG.symbols.length)];
-    names.push(symbol.name);
+    picks.push(symbol.name);
   }
-  return names;
+  return picks;
 };
 
-const sanitizeState = (rawState) => {
-  if (!rawState || typeof rawState !== 'object') return null;
-  const safeNumber = (val, fallback, min = 0) => {
-    const parsed = Number(val);
-    return Number.isFinite(parsed) && parsed >= min ? parsed : fallback;
-  };
+const sanitizeNumber = (value, fallback, min = 0) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < min) return fallback;
+  return Math.round(parsed * 100) / 100;
+};
 
+const sanitizeState = (raw) => {
+  if (!raw || typeof raw !== 'object') return null;
   return {
-    balance: safeNumber(rawState.balance, CONFIG.startingCredits),
-    currentBet: safeNumber(rawState.currentBet, CONFIG.defaultBet || CONFIG.costPerSpin, CONFIG.costPerSpin || 0),
-    betMultiplier: safeNumber(rawState.betMultiplier, 1, 1),
-    lastMessage: typeof rawState.lastMessage === 'string' ? rawState.lastMessage : 'Insert credits to play.',
-    lastWin: safeNumber(rawState.lastWin, 0),
-    lastMultiplier: safeNumber(rawState.lastMultiplier, 1, 1),
-    autoSpinInterval: safeNumber(rawState.autoSpinInterval, CONFIG.autoSpinIntervalDefault, 100),
-    totalWinnings: safeNumber(rawState.totalWinnings, 0),
-    lastSymbols: Array.isArray(rawState.lastSymbols) && rawState.lastSymbols.length === 3
-      ? rawState.lastSymbols
-      : defaultSymbols(),
-    lastSpinId: typeof rawState.lastSpinId === 'string' ? rawState.lastSpinId : null,
-    // Always start fresh on page load so controls aren't stuck disabled
+    balance: sanitizeNumber(raw.balance, CONFIG.startingCredits),
+    currentBet: sanitizeNumber(raw.currentBet, CONFIG.defaultBet, CONFIG.costPerSpin),
+    betMultiplier: sanitizeNumber(raw.betMultiplier, 1, 1),
+    lastMessage: typeof raw.lastMessage === 'string' ? raw.lastMessage : 'Insert credits to play.',
+    lastWin: sanitizeNumber(raw.lastWin, 0),
+    lastMultiplier: sanitizeNumber(raw.lastMultiplier, 1, 1),
+    totalWinnings: sanitizeNumber(raw.totalWinnings, 0),
     spinning: false,
     autoSpin: false,
+    autoSpinInterval: sanitizeNumber(raw.autoSpinInterval, CONFIG.autoSpinIntervalDefault, 200),
+    lastSymbols: Array.isArray(raw.lastSymbols) && raw.lastSymbols.length === CONFIG.reels
+      ? raw.lastSymbols
+      : pickRandomSymbols(CONFIG.reels),
+    lastSpinId: typeof raw.lastSpinId === 'string' ? raw.lastSpinId : null,
   };
 };
 
-const getStoredState = () => {
+const loadStoredState = () => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     return sanitizeState(parsed);
   } catch (err) {
-    console.warn('Could not parse stored state', err);
+    console.warn('Unable to load stored state', err);
     return null;
   }
 };
 
-const rollMultiplier = () => {
+const pickTargets = () => {
+  const shouldForceWin = Math.random() < CONFIG.winBiasChance;
+  if (shouldForceWin) {
+    const winningSymbol = CONFIG.symbols[Math.floor(Math.random() * CONFIG.symbols.length)].name;
+    return Array(CONFIG.reels).fill(winningSymbol);
+  }
+  return Array.from({ length: CONFIG.reels }, () => (
+    CONFIG.symbols[Math.floor(Math.random() * CONFIG.symbols.length)].name
+  ));
+};
+
+const rollBonusMultiplier = () => {
   const roll = Math.random();
   let cumulative = 0;
   for (const entry of CONFIG.multipliers) {
@@ -63,216 +77,200 @@ const rollMultiplier = () => {
   return 1;
 };
 
-const calculatePayout = (symbols, effectiveBet) => {
-  const [a, b, c] = symbols.map(findSymbol);
-  const same = a.name === b.name && b.name === c.name;
-  if (!same) return 0;
-  const multiplier = CONFIG.payoutMultipliers[a.name] ?? 5;
-  return multiplier * effectiveBet;
-};
-
-const pickTargets = (winBias) => {
-  const biased = Math.random() < winBias;
-  if (biased) {
-    const winner = CONFIG.symbols[Math.floor(Math.random() * CONFIG.symbols.length)];
-    return [winner.name, winner.name, winner.name];
-  }
-  return [0, 1, 2].map(
-    () => CONFIG.symbols[Math.floor(Math.random() * CONFIG.symbols.length)].name,
-  );
+const calculatePayout = (symbols, wager) => {
+  if (!symbols || symbols.length !== CONFIG.reels) return 0;
+  const [a, b, c] = symbols;
+  if (a !== b || b !== c) return 0;
+  const multiplier = CONFIG.payoutMultipliers[a] ?? 5;
+  return multiplier * wager;
 };
 
 export const createStore = () => {
-  const instanceId = randomId();
   const channel = 'BroadcastChannel' in window ? new BroadcastChannel(CHANNEL_NAME) : null;
+  const instanceId = randomId();
   const subscribers = new Set();
   const spinListeners = new Set();
 
   let state = {
     balance: CONFIG.startingCredits,
-    currentBet: CONFIG.defaultBet || CONFIG.costPerSpin,
+    currentBet: CONFIG.defaultBet,
     betMultiplier: 1,
     lastMessage: 'Insert credits to play.',
     lastWin: 0,
     lastMultiplier: 1,
+    totalWinnings: 0,
     spinning: false,
     autoSpin: false,
     autoSpinInterval: CONFIG.autoSpinIntervalDefault,
-    totalWinnings: 0,
-    lastSymbols: defaultSymbols(),
+    lastSymbols: pickRandomSymbols(CONFIG.reels),
     lastSpinId: null,
   };
 
-  const persist = (nextState) => {
+  const persist = (snapshot) => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(nextState));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
     } catch (err) {
       console.warn('Unable to persist state', err);
     }
   };
 
-  const notify = () => subscribers.forEach((fn) => fn(state));
-  const notifySpin = (payload) => spinListeners.forEach((fn) => fn(payload));
-
-  const applyState = (nextState, shouldBroadcast = true) => {
-    state = { ...state, ...nextState };
-    persist(state);
-    notify();
-    if (shouldBroadcast && channel) {
-      channel.postMessage({ type: 'state', state, source: instanceId });
-    }
+  const broadcast = (payload) => {
+    if (!channel) return;
+    channel.postMessage({ ...payload, source: instanceId });
   };
 
-  const handleIncomingState = (payload) => {
-    if (payload.source === instanceId) return;
-    if (payload.type === 'state') {
-      state = { ...state, ...payload.state };
-      persist(state);
-      notify();
-    }
-    if (payload.type === 'spin-start') {
-      notifySpin(payload.payload);
+  const applyState = (next, { silent = false } = {}) => {
+    state = { ...state, ...next };
+    persist(state);
+    if (!silent) subscribers.forEach((fn) => fn(state));
+  };
+
+  const syncFromStorage = (event) => {
+    if (event.key !== STORAGE_KEY || !event.newValue) return;
+    try {
+      const parsed = JSON.parse(event.newValue);
+      const safe = sanitizeState(parsed);
+      if (safe) applyState(safe, { silent: false });
+    } catch (err) {
+      console.warn('Failed to sync from storage', err);
     }
   };
 
   if (channel) {
     channel.addEventListener('message', (event) => {
       const payload = event.data || {};
-      handleIncomingState(payload);
-    });
-  } else {
-    window.addEventListener('storage', (event) => {
-      if (event.key === STORAGE_KEY && event.newValue) {
-        try {
-          const newState = JSON.parse(event.newValue);
-          state = { ...state, ...newState };
-          notify();
-        } catch (err) {
-          console.warn('Unable to sync via storage', err);
-        }
+      if (payload.source === instanceId) return;
+      if (payload.type === 'state') {
+        applyState(payload.state, { silent: false });
+      }
+      if (payload.type === 'spin') {
+        spinListeners.forEach((fn) => fn(payload.data));
       }
     });
+  } else {
+    window.addEventListener('storage', syncFromStorage);
   }
 
-  const stored = getStoredState();
-  if (stored) state = { ...state, ...stored };
-  notify();
+  const stored = loadStoredState();
+  if (stored) applyState(stored, { silent: true });
 
-  const broadcastSpin = (payload) => {
-    notifySpin(payload);
-    if (channel) channel.postMessage({ type: 'spin-start', payload, source: instanceId });
+  const updateAndBroadcast = (next) => {
+    applyState(next);
+    broadcast({ type: 'state', state });
   };
 
   const setBet = (bet) => {
-    const safeBet = Number.isFinite(bet) && bet > 0 ? bet : state.currentBet;
-    applyState({ currentBet: safeBet, lastMessage: `Bet set to $${safeBet.toFixed(2)}` });
+    const safe = sanitizeNumber(bet, state.currentBet, CONFIG.costPerSpin);
+    updateAndBroadcast({
+      currentBet: safe,
+      lastMessage: `Bet set to $${safe.toFixed(2)}`,
+    });
   };
 
   const setBetMultiplier = (multiplier) => {
-    const safe = Number.isFinite(multiplier) && multiplier > 0 ? multiplier : 1;
-    applyState({ betMultiplier: safe, lastMessage: `Multiplier set to x${safe}` });
+    const safe = sanitizeNumber(multiplier, state.betMultiplier, 1);
+    updateAndBroadcast({
+      betMultiplier: safe,
+      lastMessage: `Multiplier set to x${safe}`,
+    });
   };
 
-  const addBalance = (amount) => {
-    const normalized = (() => {
-      if (typeof amount === 'string') {
-        const cleaned = amount.trim().replace(/[^0-9.+-]/g, '');
-        const parsed = Number.parseFloat(cleaned);
-        return Number.isFinite(parsed) ? parsed : NaN;
-      }
-      const parsed = Number(amount);
-      return Number.isFinite(parsed) ? parsed : NaN;
-    })();
-
-    const safeAmount = normalized > 0 ? Math.round(normalized * 100) / 100 : 0;
-    if (!safeAmount) {
-      applyState({ lastMessage: 'Enter a valid amount to add.' });
+  const addBalance = (value) => {
+    const parsed = sanitizeNumber(value, NaN, 0);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      updateAndBroadcast({ lastMessage: 'Enter a valid amount to add.' });
       return false;
     }
-    const nextBalance = Math.round((state.balance + safeAmount) * 100) / 100;
-    applyState({ balance: nextBalance, lastMessage: `Added $${safeAmount.toFixed(2)}. Ready to spin!` });
+    const nextBalance = state.balance + parsed;
+    updateAndBroadcast({
+      balance: nextBalance,
+      lastMessage: `Added $${parsed.toFixed(2)}. Ready to spin!`,
+    });
     return true;
   };
 
-  const setAutoSpin = (active) => applyState({ autoSpin: !!active });
-
-  const setAutoSpinInterval = (interval) => {
-    const safeInterval = Number.isFinite(interval) && interval > 0 ? interval : state.autoSpinInterval;
-    applyState({ autoSpinInterval: safeInterval });
-  };
-
   const reset = () => {
-    applyState({
-      balance: 0,
-      currentBet: CONFIG.defaultBet || CONFIG.costPerSpin,
+    updateAndBroadcast({
+      balance: CONFIG.startingCredits,
+      currentBet: CONFIG.defaultBet,
       betMultiplier: 1,
       lastMessage: 'Machine reset. Insert credits to play.',
       lastWin: 0,
       lastMultiplier: 1,
+      totalWinnings: 0,
       spinning: false,
       autoSpin: false,
-      totalWinnings: 0,
-      lastSymbols: defaultSymbols(),
+      lastSymbols: pickRandomSymbols(CONFIG.reels),
       lastSpinId: null,
+    });
+  };
+
+  const settleSpin = (targets, wager, spinId) => {
+    const baseWin = calculatePayout(targets, wager);
+    const multiplier = baseWin > 0 ? rollBonusMultiplier() : 1;
+    const payout = baseWin * multiplier;
+    const nextBalance = state.balance + payout;
+    updateAndBroadcast({
+      balance: nextBalance,
+      lastWin: payout,
+      lastMultiplier: multiplier,
+      lastMessage: payout > 0
+        ? `${targets[0]} pays $${baseWin.toFixed(2)}${multiplier > 1 ? ` x${multiplier}` : ''}!`
+        : 'No win. Try again!',
+      totalWinnings: state.totalWinnings + payout,
+      spinning: false,
+      lastSymbols: targets,
+      lastSpinId: spinId,
     });
   };
 
   const spin = () => {
     if (state.spinning) return null;
-    const cost = state.currentBet * state.betMultiplier;
-    if (!Number.isFinite(cost) || cost <= 0) {
-      applyState({ lastMessage: 'Choose a bet greater than $0 to play.' });
+    const wager = sanitizeNumber(state.currentBet * state.betMultiplier, 0, 0.01);
+    if (!Number.isFinite(wager) || wager <= 0) {
+      updateAndBroadcast({ lastMessage: 'Choose a bet greater than $0 to play.' });
       return null;
     }
-    if (state.balance < cost) {
-      applyState({ lastMessage: 'Insufficient credits to spin.' });
+    if (state.balance < wager) {
+      updateAndBroadcast({ lastMessage: 'Insufficient credits to spin.' });
       return null;
     }
 
-    const targets = pickTargets(CONFIG.winBiasChance);
+    const targets = pickTargets();
     const spinId = randomId();
-    const nextBalance = state.balance - cost;
 
-    applyState({
-      balance: nextBalance,
-      spinning: true,
+    updateAndBroadcast({
+      balance: state.balance - wager,
+      lastMessage: 'Spinning...',
       lastWin: 0,
       lastMultiplier: 1,
-      lastMessage: 'Spinning...',
+      spinning: true,
     });
 
-    broadcastSpin({ targets, spinId });
+    broadcast({ type: 'spin', data: { targets, spinId } });
 
-    const settle = () => {
-      const baseWin = calculatePayout(targets, cost);
-      const multiplier = baseWin > 0 ? rollMultiplier() : 1;
-      const payout = baseWin * multiplier;
-      const finalBalance = getState().balance + payout;
-      applyState({
-        balance: finalBalance,
-        lastWin: payout,
-        lastMultiplier: multiplier,
-        lastMessage: payout > 0
-          ? `${targets[0]} pays $${baseWin.toFixed(2)}${multiplier > 1 ? ` x${multiplier}` : ''}!`
-          : 'No win. Try again!',
-        spinning: false,
-        totalWinnings: state.totalWinnings + payout,
-        lastSymbols: targets,
-        lastSpinId: spinId,
-      });
-    };
-
-    const totalDuration = CONFIG.spinDurationMs + CONFIG.spinStaggerMs * 2 + 400;
-    setTimeout(settle, totalDuration);
+    const settleDelay = CONFIG.spinDurationMs + CONFIG.spinStaggerMs * (CONFIG.reels - 1) + 400;
+    setTimeout(() => settleSpin(targets, wager, spinId), settleDelay);
     return { targets, spinId };
   };
 
+  const setAutoSpin = (active) => {
+    updateAndBroadcast({ autoSpin: !!active });
+  };
+
+  const setAutoSpinInterval = (interval) => {
+    const safe = sanitizeNumber(interval, state.autoSpinInterval, 200);
+    updateAndBroadcast({ autoSpinInterval: safe });
+  };
+
   const getState = () => state;
+
   const subscribe = (fn) => {
     subscribers.add(fn);
     fn(state);
     return () => subscribers.delete(fn);
   };
+
   const onSpin = (fn) => {
     spinListeners.add(fn);
     return () => spinListeners.delete(fn);
@@ -285,8 +283,8 @@ export const createStore = () => {
     setBet,
     setBetMultiplier,
     addBalance,
-    spin,
     reset,
+    spin,
     setAutoSpin,
     setAutoSpinInterval,
   };

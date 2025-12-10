@@ -11,14 +11,14 @@
 </head>
 <body>
   <div class="background-glow"></div>
-  <div class="header">
+  <header class="header">
     <div class="marquee"></div>
     <h1>Purdue Slots - Control Room</h1>
     <div class="marquee"></div>
-  </div>
+  </header>
 
   <main class="machine-shell control-layout">
-    <div class="top-panel">
+    <section class="top-panel">
       <div class="credit-box">
         <span class="label">Balance</span>
         <span id="balance" class="value">$0</span>
@@ -43,13 +43,13 @@
         <span class="label">Total Winnings</span>
         <span id="total" class="value">$0</span>
       </div>
-    </div>
+    </section>
 
     <div class="control-grid">
       <section class="panel">
         <div class="panel-title">Balance Management</div>
         <div class="balance-controls">
-          <input id="add-balance" type="number" min="0" step="1" placeholder="Add amount" aria-label="Add balance">
+          <input id="add-balance" type="number" min="0" step="0.01" placeholder="Add amount" aria-label="Add balance">
           <button id="add-balance-btn" class="btn primary">Add Balance</button>
         </div>
         <div class="quick-buttons">
@@ -88,6 +88,8 @@
         </div>
       </section>
     </div>
+
+    <div class="slogan-banner" id="slogan-banner">Boiler Up!</div>
   </main>
 
   <div class="footer-text">Control spins, balances, and Purdue pride. Open the display screen for the full show.</div>

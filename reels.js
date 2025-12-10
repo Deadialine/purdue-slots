@@ -1,74 +1,77 @@
 import { CONFIG } from './config.js';
 
-export class Reel {
+const createSymbolNode = (symbol) => {
+  const node = document.createElement('div');
+  node.className = 'symbol';
+  const img = document.createElement('img');
+  img.src = symbol.image;
+  img.alt = symbol.name;
+  node.appendChild(img);
+  return node;
+};
+
+class Reel {
   constructor(element) {
     this.el = element;
     this.track = element.querySelector('.reel-track');
-    this.currentStops = [];
+    this.currentStops = Array(CONFIG.visibleSymbols).fill(CONFIG.symbols[0].name);
+    this.renderStatic(this.currentStops);
   }
 
   renderStatic(symbolNames) {
     this.track.innerHTML = '';
     symbolNames.forEach((name) => {
       const symbol = CONFIG.symbols.find((s) => s.name === name) || CONFIG.symbols[0];
-      const node = document.createElement('div');
-      node.className = 'symbol';
-      node.innerHTML = `<img src="${symbol.image}" alt="${symbol.name}">`;
-      this.track.appendChild(node);
+      this.track.appendChild(createSymbolNode(symbol));
     });
     this.track.style.transition = 'none';
     this.track.style.transform = 'translateY(0px)';
     this.currentStops = symbolNames;
   }
 
-  buildSequence(targetIndex, cycles) {
-    const { visibleSymbols } = CONFIG;
-    const sequence = [...this.currentStops];
-    const len = CONFIG.symbols.length;
-    const totalItems = cycles * len;
-    for (let i = 0; i < totalItems; i += 1) {
-      sequence.push(CONFIG.symbols[i % len]);
+  buildSequence(targetName) {
+    const targetIndex = CONFIG.symbols.findIndex((s) => s.name === targetName);
+    const safeIndex = targetIndex >= 0 ? targetIndex : Math.floor(Math.random() * CONFIG.symbols.length);
+    const sequence = [...this.currentStops.map((name) => CONFIG.symbols.find((s) => s.name === name) || CONFIG.symbols[0])];
+
+    const fullSymbols = CONFIG.symbols;
+    const totalLoopItems = CONFIG.cyclesPerSpin * fullSymbols.length;
+    for (let i = 0; i < totalLoopItems; i += 1) {
+      sequence.push(fullSymbols[i % fullSymbols.length]);
     }
-    for (let i = visibleSymbols; i > 0; i -= 1) {
-      sequence.push(CONFIG.symbols[(targetIndex - (visibleSymbols - i) + len) % len]);
+
+    for (let offset = CONFIG.visibleSymbols - 1; offset >= 0; offset -= 1) {
+      sequence.push(fullSymbols[(safeIndex - offset + fullSymbols.length) % fullSymbols.length]);
     }
+
     return sequence;
   }
 
-  spinTo(symbolName, duration) {
+  spinTo(targetName, duration) {
     return new Promise((resolve) => {
-      const len = CONFIG.symbols.length;
-      const targetIndex = CONFIG.symbols.findIndex((s) => s.name === symbolName);
-      const safeIndex = targetIndex >= 0 ? targetIndex : Math.floor(Math.random() * len);
-      const sequence = this.buildSequence(safeIndex, CONFIG.cyclesPerSpin);
+      const sequence = this.buildSequence(targetName);
       this.track.innerHTML = '';
-      sequence.forEach((symbol) => {
-        const node = document.createElement('div');
-        node.className = 'symbol';
-        node.innerHTML = `<img src="${symbol.image}" alt="${symbol.name}">`;
-        this.track.appendChild(node);
-      });
+      sequence.forEach((symbol) => this.track.appendChild(createSymbolNode(symbol)));
 
-      const shift = (sequence.length - CONFIG.visibleSymbols) * CONFIG.symbolHeight;
+      const travel = (sequence.length - CONFIG.visibleSymbols) * CONFIG.symbolHeight;
       this.track.style.transition = 'none';
       this.track.style.transform = 'translateY(0px)';
 
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           this.track.style.transition = `transform ${duration}ms ${CONFIG.easing}`;
-          this.track.style.transform = `translateY(-${shift}px)`;
+          this.track.style.transform = `translateY(-${travel}px)`;
         });
       });
 
-      const cleanup = () => {
-        this.track.removeEventListener('transitionend', cleanup);
-        const finalWindow = sequence.slice(sequence.length - CONFIG.visibleSymbols);
-        this.currentStops = finalWindow.map((s) => s.name);
-        this.renderStatic(this.currentStops);
-        resolve(this.currentStops);
+      const onComplete = () => {
+        const finalWindow = sequence.slice(sequence.length - CONFIG.visibleSymbols).map((s) => s.name);
+        this.renderStatic(finalWindow);
+        this.track.removeEventListener('transitionend', onComplete);
+        resolve(finalWindow);
       };
 
-      this.track.addEventListener('transitionend', cleanup, { once: true });
+      this.track.addEventListener('transitionend', onComplete, { once: true });
     });
   }
 }
@@ -78,21 +81,21 @@ export class ReelSet {
     this.reels = Array.from(root.querySelectorAll('.reel')).map((el) => new Reel(el));
   }
 
-  renderStatic(symbolNames) {
-    this.reels.forEach((reel, idx) => {
-      const symbolsForReel = symbolNames[idx] ? [symbolNames[idx], symbolNames[idx], symbolNames[idx]] : symbolNames;
-      reel.renderStatic(symbolsForReel);
+  renderStatic(symbols) {
+    this.reels.forEach((reel, index) => {
+      const name = symbols[index] || CONFIG.symbols[0].name;
+      reel.renderStatic(Array(CONFIG.visibleSymbols).fill(name));
     });
   }
 
   spinToTargets(targets) {
-    const promises = this.reels.map((reel, index) => (
-      new Promise((resolve) => {
+    return Promise.all(
+      this.reels.map((reel, idx) => new Promise((resolve) => {
+        const delay = idx * CONFIG.spinStaggerMs;
         setTimeout(() => {
-          reel.spinTo(targets[index], CONFIG.spinDurationMs + index * 120).then(resolve);
-        }, index * CONFIG.spinStaggerMs);
-      })
-    ));
-    return Promise.all(promises);
+          reel.spinTo(targets[idx], CONFIG.spinDurationMs + idx * 120).then(resolve);
+        }, delay);
+      })),
+    );
   }
 }
