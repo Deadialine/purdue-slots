@@ -1,4 +1,5 @@
 import { dollars } from './config.js';
+import { CONFIG, dollars } from './config.js';
 import { createStore } from './store.js';
 import { ReelSet } from './reels.js';
 
@@ -14,6 +15,9 @@ const sounds = {
   big: new Audio('assets/sounds/win_big.mp3'),
   champion: new Audio('assets/sounds/champion_music.mp3'),
 };
+
+
+const refs = {};
 
 const cacheRefs = () => {
   refs.balance = document.getElementById('balance');

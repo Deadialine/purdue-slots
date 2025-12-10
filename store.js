@@ -62,6 +62,15 @@ const buildLosingTargets = () => {
     picks[2] = alt ? alt.name : picks[2];
   }
   return picks.slice(0, 3);
+const pickTargets = (winBias) => {
+  const biased = Math.random() < winBias;
+  if (biased) {
+    const winner = CONFIG.symbols[Math.floor(Math.random() * CONFIG.symbols.length)];
+    return [winner.name, winner.name, winner.name];
+  }
+  return [0, 1, 2].map(
+    () => CONFIG.symbols[Math.floor(Math.random() * CONFIG.symbols.length)].name,
+  );
 };
 
 export const createStore = () => {
@@ -171,6 +180,10 @@ export const createStore = () => {
     const safeInterval = Number.isFinite(interval) && interval > 0 ? interval : state.autoSpinInterval;
     applyState({ autoSpinInterval: safeInterval });
   };
+  const setBet = (bet) => applyState({ currentBet: bet, lastMessage: `Bet set to $${bet.toFixed(2)}` });
+  const setBetMultiplier = (multiplier) => applyState({ betMultiplier: multiplier, lastMessage: `Multiplier set to x${multiplier}` });
+  const addBalance = (amount) => applyState({ balance: state.balance + amount, lastMessage: `Added $${amount.toFixed(2)}. Ready to spin!` });
+  const setAutoSpin = (active) => applyState({ autoSpin: active });
 
   const reset = () => {
     applyState({
@@ -203,6 +216,12 @@ export const createStore = () => {
     // Single RNG gate drives the ~10% win probability.
     const shouldWin = Math.random() < CONFIG.winBiasChance;
     const targets = shouldWin ? buildWinningTargets() : buildLosingTargets();
+    if (state.balance < cost) {
+      applyState({ lastMessage: 'Insert more credits to spin.' });
+      return null;
+    }
+
+    const targets = pickTargets(CONFIG.winBiasChance);
     const spinId = randomId();
     const nextBalance = state.balance - cost;
     applyState({
