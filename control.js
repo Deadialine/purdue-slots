@@ -110,17 +110,6 @@ const startAutoSpin = (skipStateUpdate = false) => {
     }
   }, interval);
   refs.autoSpinStatus.textContent = `Auto spin is ON (every ${interval}ms)`;
-  const interval = parseInt(refs.autoSpinInterval.value, 10) || 1200;
-  if (!skipStateUpdate) {
-    store.setAutoSpin(true);
-  }
-  clearInterval(autoSpinTimer);
-  autoSpinTimer = setInterval(() => {
-    if (!store.getState().spinning) {
-      store.spin();
-    }
-  }, interval);
-  refs.autoSpinStatus.textContent = `Auto spin running every ${interval}ms`;
   refs.autoSpinToggle.textContent = 'Stop Auto Spin';
   refs.autoSpinToggle.classList.add('toggled');
 };
@@ -151,14 +140,9 @@ const bindEvents = () => {
     store.reset();
   });
   refs.addBalanceButton.addEventListener('click', () => {
-    const amount = parseFloat(refs.addBalanceInput.value) || 0;
-    if (amount > 0) {
-      store.addBalance(amount);
-      refs.addBalanceInput.value = '';
-    } else {
-      store.addBalance(NaN);
-    }
-    if (amount > 0) store.addBalance(amount);
+    const amount = parseFloat(refs.addBalanceInput.value);
+    store.addBalance(amount);
+    refs.addBalanceInput.value = '';
   });
   refs.quickAddButtons.forEach((btn) => {
     btn.addEventListener('click', () => {
