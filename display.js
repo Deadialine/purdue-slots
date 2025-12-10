@@ -19,6 +19,11 @@ const addTempClass = (target, className, duration = 800) => {
   setTimeout(() => target.classList.remove(className), duration);
 };
 
+const addTempClass = (target, className, duration = 800) => {
+  target.classList.add(className);
+  setTimeout(() => target.classList.remove(className), duration);
+};
+
 const cacheRefs = () => {
   refs.balance = document.getElementById('balance');
   refs.cost = document.getElementById('cost');
@@ -117,13 +122,16 @@ const launchConfetti = () => {
 const celebrateWin = (state) => {
   if (!state.lastSpinId || state.lastSpinId === lastCelebratedSpinId) return;
   if (state.lastWin > 0) {
+    const costPerSpin = Math.max(1, state.currentBet * state.betMultiplier);
+    const normalizedWin = state.lastWin / costPerSpin;
+
     playWinSound(state.lastWin);
     launchConfetti();
     triggerBoilerGoldFlash();
 
-    if (state.lastWin >= 10) triggerScreenShake();
-    if (state.lastWin >= 20) launchPRain();
-    if (state.lastWin >= 50) launchBoilermakerTrain();
+    if (state.lastWin >= 5 || normalizedWin >= 5) triggerScreenShake();
+    if (state.lastWin >= 10 || normalizedWin >= 8) launchPRain();
+    if (state.lastWin >= 20 || normalizedWin >= 12) launchBoilermakerTrain();
   }
   lastCelebratedSpinId = state.lastSpinId;
 };
