@@ -82,7 +82,8 @@ const renderMultiplierOptions = (state) => {
 };
 
 const openDisplayWindow = () => {
-  window.open('/display.html', 'purdue-display', 'noopener,width=1280,height=720');
+  const displayUrl = new URL('./display.html', window.location.href).toString();
+  window.open(displayUrl, 'purdue-display', 'noopener,width=1280,height=720');
 };
 
 const startAutoSpin = (skipStateUpdate = false) => {
@@ -170,6 +171,7 @@ const bindEvents = () => {
 
 window.addEventListener('DOMContentLoaded', () => {
   cacheRefs();
+  renderHud(store.getState());
   renderBetOptions(store.getState());
   renderMultiplierOptions(store.getState());
   if (refs.autoSpinInterval) {
