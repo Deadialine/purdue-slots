@@ -39,9 +39,9 @@ const initReels = (state) => {
   reels.renderStatic(state.lastSymbols);
 };
 
-const handleSpin = ({ targets }) => {
+const handleSpin = ({ targets, windows }) => {
   if (!reels) return;
-  reels.spinToTargets(targets);
+  reels.spinToTargets(targets, windows);
 };
 
 const playWinSound = (amount) => {
@@ -86,9 +86,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   store.subscribe((state) => {
     renderHud(state);
-    if (!state.spinning && state.lastSymbols) {
-      reels.renderStatic(state.lastSymbols.map((name) => name));
-    }
     celebrateWin(state);
   });
   store.onSpin(handleSpin);
