@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Purdue Slots - Control</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Montserrat:wght@600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="background-glow"></div>
+  <div class="header">
+    <div class="marquee"></div>
+    <h1>Purdue Slots - Control Room</h1>
+    <div class="marquee"></div>
+  </div>
+
+  <main class="machine-shell control-layout">
+    <div class="top-panel">
+      <div class="credit-box">
+        <span class="label">Balance</span>
+        <span id="balance" class="value">$0</span>
+      </div>
+      <div class="credit-box">
+        <span class="label">Last Result</span>
+        <span id="result" class="value">Insert credits to play</span>
+      </div>
+      <div class="credit-box">
+        <span class="label">Cost / Spin</span>
+        <span id="cost" class="value">$1</span>
+      </div>
+      <div class="credit-box">
+        <span class="label">Last Win</span>
+        <span id="last-win" class="value">$0</span>
+      </div>
+      <div class="credit-box">
+        <span class="label">Multiplier</span>
+        <span id="multiplier" class="value">x1</span>
+      </div>
+      <div class="credit-box">
+        <span class="label">Total Winnings</span>
+        <span id="total" class="value">$0</span>
+      </div>
+    </div>
+
+    <div class="control-grid">
+      <section class="panel">
+        <div class="panel-title">Balance Management</div>
+        <div class="balance-controls">
+          <input id="add-balance" type="number" min="0" step="1" placeholder="Add amount" aria-label="Add balance">
+          <button id="add-balance-btn" class="btn primary">Add Balance</button>
+        </div>
+        <div class="quick-buttons">
+          <button class="btn secondary" data-add="1">+ $1</button>
+          <button class="btn secondary" data-add="5">+ $5</button>
+          <button class="btn secondary" data-add="10">+ $10</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-title">Bet & Multiplier</div>
+        <div class="label">Choose Your Bet</div>
+        <div id="bet-options" class="bet-options" role="radiogroup" aria-label="Bet amount"></div>
+        <div class="label multiplier-label">Bet Multiplier</div>
+        <div id="multiplier-options" class="bet-options" role="radiogroup" aria-label="Bet multiplier"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-title">Auto Spin</div>
+        <div class="auto-spin-row">
+          <button id="auto-spin-toggle" class="btn primary ghost">Auto Spin</button>
+          <div id="auto-spin-status" class="status-text">Auto spin is off</div>
+        </div>
+      </section>
+
+      <section class="panel action-panel">
+        <div class="panel-title">Manual Controls</div>
+        <div class="control-actions">
+          <button id="spin" class="btn primary">Spin</button>
+          <button id="reset" class="btn danger">Reset</button>
+          <button id="open-display" class="btn secondary">Open Display Screen</button>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div class="footer-text">Control spins, balances, and Purdue pride. Open the display screen for the full show.</div>
+
+  <script type="module" src="control.js"></script>
+</body>
+</html>

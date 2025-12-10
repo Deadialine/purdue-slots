@@ -70,84 +70,13 @@ const launchConfetti = () => {
   }
 };
 
-const triggerPurdueRain = () => {
-  if (!refs.celebration) return;
-  const rainLayer = document.createElement('div');
-  rainLayer.className = 'p-rain';
-  const dropCount = 28;
-
-  for (let i = 0; i < dropCount; i += 1) {
-    const drop = document.createElement('div');
-    drop.className = 'p-drop';
-    drop.style.left = `${Math.random() * 100}%`;
-    drop.style.animationDelay = `${Math.random() * 0.8}s`;
-    drop.style.setProperty('--fall-duration', `${2 + Math.random()}s`);
-    drop.style.setProperty('--drift', `${Math.random() * 60 - 30}px`);
-    rainLayer.appendChild(drop);
-  }
-
-  refs.celebration.appendChild(rainLayer);
-  setTimeout(() => rainLayer.remove(), 3500);
-};
-
-const triggerBoilermakerTrain = () => {
-  if (!refs.celebration) return;
-  const train = document.createElement('img');
-  train.src = 'assets/train.png';
-  train.alt = 'Boilermaker train';
-  train.className = 'train-effect';
-  refs.celebration.appendChild(train);
-  train.addEventListener('animationend', () => train.remove(), { once: true });
-};
-
-const chooseCelebrationEffect = (amount) => {
-  const effects = [
-    { id: 'flash', minAmount: 0, run: triggerGoldFlash },
-    { id: 'shake', minAmount: 10, run: triggerScreenShake },
-    { id: 'p-rain', minAmount: 0, run: triggerPurdueRain },
-    { id: 'train', minAmount: 50, run: triggerBoilermakerTrain },
-  ];
-
-  const eligible = effects.filter((effect) => amount >= effect.minAmount);
-  if (!eligible.length) return null;
-  return eligible[Math.floor(Math.random() * eligible.length)];
-};
-
 const celebrateWin = (state) => {
   if (!state.lastSpinId || state.lastSpinId === lastCelebratedSpinId) return;
   if (state.lastWin > 0) {
     playWinSound(state.lastWin);
     launchConfetti();
-    const chosenEffect = chooseCelebrationEffect(state.lastWin);
-    chosenEffect?.run(state.lastWin);
   }
   lastCelebratedSpinId = state.lastSpinId;
-};
-
-const triggerGoldFlash = (amount) => {
-  if (!refs.celebration) return;
-  const overlay = document.createElement('div');
-  overlay.className = 'boiler-gold-flash';
-  refs.celebration.appendChild(overlay);
-
-  const reelsArea = document.querySelector('.slot-window');
-  const winText = refs.result;
-  reelsArea?.classList.add('flash-outline');
-  winText?.classList.add('flash-outline');
-
-  const cleanup = () => {
-    overlay.remove();
-    reelsArea?.classList.remove('flash-outline');
-    winText?.classList.remove('flash-outline');
-  };
-
-  overlay.addEventListener('animationend', cleanup, { once: true });
-};
-
-const triggerScreenShake = (amount) => {
-  if (amount < 10) return; // Medium/large wins only
-  document.body.classList.add('screen-shake');
-  setTimeout(() => document.body.classList.remove('screen-shake'), 500);
 };
 
 document.addEventListener('DOMContentLoaded', () => {
