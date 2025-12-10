@@ -149,8 +149,17 @@ export const createStore = () => {
   };
 
   const addBalance = (amount) => {
-    const parsed = Number.isFinite(amount) ? Number(amount) : NaN;
-    const safeAmount = parsed > 0 ? Math.round(parsed * 100) / 100 : 0;
+    const normalized = (() => {
+      if (typeof amount === 'string') {
+        const cleaned = amount.replace(/[^0-9.+-]/g, '');
+        const parsed = Number.parseFloat(cleaned);
+        return Number.isFinite(parsed) ? parsed : NaN;
+      }
+      const parsed = Number(amount);
+      return Number.isFinite(parsed) ? parsed : NaN;
+    })();
+
+    const safeAmount = normalized > 0 ? Math.round(normalized * 100) / 100 : 0;
     if (!safeAmount) {
       applyState({ lastMessage: 'Enter a valid amount to add.' });
       return;
