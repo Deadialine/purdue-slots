@@ -129,7 +129,8 @@ export const createStore = () => {
 
   const stored = getStoredState();
   if (stored) {
-    state = { ...state, ...stored };
+    const { spinning: _ignoredSpinning, ...restoredState } = stored;
+    state = { ...state, ...restoredState, spinning: false };
   }
   notify();
 
