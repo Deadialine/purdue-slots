@@ -14,6 +14,11 @@ const sounds = {
 };
 const refs = {};
 
+const addTempClass = (target, className, duration = 800) => {
+  target.classList.add(className);
+  setTimeout(() => target.classList.remove(className), duration);
+};
+
 const cacheRefs = () => {
   refs.balance = document.getElementById('balance');
   refs.cost = document.getElementById('cost');
@@ -22,6 +27,7 @@ const cacheRefs = () => {
   refs.multiplier = document.getElementById('multiplier');
   refs.total = document.getElementById('total');
   refs.celebration = document.getElementById('celebration-layer');
+  refs.body = document.body;
 };
 
 const renderHud = (state) => {
@@ -39,9 +45,47 @@ const initReels = (state) => {
   reels.renderStatic(state.lastSymbols);
 };
 
-const handleSpin = ({ targets }) => {
+const handleSpin = ({ targets, windows }) => {
   if (!reels) return;
-  reels.spinToTargets(targets);
+  reels.spinToTargets(targets, windows);
+};
+
+const triggerBoilerGoldFlash = () => {
+  if (!refs.celebration || !refs.body) return;
+  const overlay = document.createElement('div');
+  overlay.className = 'boiler-flash-overlay';
+  refs.celebration.appendChild(overlay);
+  addTempClass(refs.body, 'gold-outline-pulse', 1200);
+  setTimeout(() => overlay.remove(), 1000);
+};
+
+const triggerScreenShake = (duration = 450) => {
+  if (!refs.body) return;
+  addTempClass(refs.body, 'screen-shake', duration);
+};
+
+const launchPRain = () => {
+  if (!refs.celebration) return;
+  const drops = 32;
+  for (let i = 0; i < drops; i += 1) {
+    const drop = document.createElement('div');
+    drop.className = 'p-rain-drop';
+    drop.style.left = `${Math.random() * 100}%`;
+    drop.style.animationDuration = `${1.8 + Math.random() * 1.2}s`;
+    drop.style.animationDelay = `${Math.random() * 0.5}s`;
+    drop.style.setProperty('--drift', `${Math.random() * 120 - 60}px`);
+    refs.celebration.appendChild(drop);
+    setTimeout(() => drop.remove(), 3200);
+  }
+};
+
+const launchBoilermakerTrain = () => {
+  if (!refs.celebration) return;
+  const train = document.createElement('div');
+  train.className = 'boilermaker-train';
+  refs.celebration.appendChild(train);
+  requestAnimationFrame(() => train.classList.add('run'));
+  setTimeout(() => train.remove(), 5200);
 };
 
 const playWinSound = (amount) => {
@@ -75,6 +119,11 @@ const celebrateWin = (state) => {
   if (state.lastWin > 0) {
     playWinSound(state.lastWin);
     launchConfetti();
+    triggerBoilerGoldFlash();
+
+    if (state.lastWin >= 10) triggerScreenShake();
+    if (state.lastWin >= 20) launchPRain();
+    if (state.lastWin >= 50) launchBoilermakerTrain();
   }
   lastCelebratedSpinId = state.lastSpinId;
 };
@@ -86,9 +135,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   store.subscribe((state) => {
     renderHud(state);
-    if (!state.spinning && state.lastSymbols) {
-      reels.renderStatic(state.lastSymbols.map((name) => name));
-    }
     celebrateWin(state);
   });
   store.onSpin(handleSpin);
