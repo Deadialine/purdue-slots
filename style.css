@@ -610,6 +610,53 @@ body.display-mode {
   border-radius: 10px;
 }
 
+.p-rain {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 6;
+}
+
+.p-drop {
+  position: absolute;
+  top: -60px;
+  width: 28px;
+  height: 22px;
+  background-image: url('assets/logo.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  opacity: 0;
+  filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));
+  animation: pDropFall var(--fall-duration, 2.5s) ease-in forwards;
+}
+
+@keyframes pDropFall {
+  0% { opacity: 0; transform: translate3d(0, -40px, 0) scale(0.9) rotate(-6deg); }
+  10% { opacity: 1; }
+  100% { opacity: 0; transform: translate3d(var(--drift, 0px), 110vh, 0) scale(0.95) rotate(14deg); }
+}
+
+.train-effect {
+  position: fixed;
+  bottom: 18px;
+  left: -35%;
+  width: clamp(180px, 20vw, 260px);
+  height: auto;
+  pointer-events: none;
+  z-index: 7;
+  animation: trainDrive 3.6s ease-in-out forwards;
+  filter: drop-shadow(0 6px 12px rgba(0,0,0,0.45));
+}
+
+@keyframes trainDrive {
+  0% { transform: translateX(-30%) scale(0.95); opacity: 0; }
+  10% { opacity: 1; }
+  40% { transform: translateX(35vw) scale(1); }
+  70% { transform: translateX(75vw) scale(1.02); }
+  100% { transform: translateX(130vw) scale(1.02); opacity: 0; }
+}
+
 .confetti-piece {
   position: absolute;
   width: 10px;
