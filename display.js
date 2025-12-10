@@ -1,105 +1,56 @@
-import { dollars } from './config.js';
-import { createStore } from './store.js';
-import { ReelSet } from './reels.js';
+import { createSharedGame } from './store.js';
+import { createReels } from './reels.js';
+import { CONFIG } from './config.js';
 
-const store = createStore();
-let reels;
-let lastCelebratedSpinId = null;
+const game = createSharedGame();
+const reels = createReels();
 
-const sounds = {
-  small: new Audio('assets/sounds/win_small.mp3'),
-  medium: new Audio('assets/sounds/win_medium.mp3'),
-  big: new Audio('assets/sounds/win_big.mp3'),
-  champion: new Audio('assets/sounds/champion_music.mp3'),
-  spin: new Audio('assets/sounds/slot_sound.mp3'),
+const elements = {
+  balance: document.getElementById('balance'),
+  cost: document.getElementById('cost'),
+  result: document.getElementById('result'),
+  lastWin: document.getElementById('last-win'),
+  multiplier: document.getElementById('multiplier'),
+  total: document.getElementById('total'),
+  celebration: document.getElementById('celebration-layer'),
 };
 
-const refs = {};
+const formatMoney = (value) => `$${value.toFixed(2)}`;
 
-const cacheRefs = () => {
-  refs.balance = document.getElementById('balance');
-  refs.cost = document.getElementById('cost');
-  refs.result = document.getElementById('result');
-  refs.lastWin = document.getElementById('last-win');
-  refs.multiplier = document.getElementById('multiplier');
-  refs.total = document.getElementById('total');
-  refs.celebration = document.getElementById('celebration-layer');
+const updateText = (state) => {
+  const wager = state.bet * state.multiplier;
+  elements.balance.textContent = formatMoney(state.credits);
+  elements.cost.textContent = `${formatMoney(state.bet)} / x${state.multiplier} (${formatMoney(wager)})`;
+  elements.result.textContent = state.lastResult;
+  elements.lastWin.textContent = formatMoney(state.lastWin);
+  elements.multiplier.textContent = `x${state.multiplier}`;
+  elements.total.textContent = formatMoney(state.totalWon);
 };
 
-const renderHud = (state) => {
-  const costPerSpin = state.currentBet * state.betMultiplier;
-  refs.balance.textContent = dollars(state.balance);
-  refs.cost.textContent = `${dollars(costPerSpin)} (Bet ${dollars(state.currentBet)} x${state.betMultiplier})`;
-  refs.result.textContent = state.lastMessage;
-  refs.lastWin.textContent = state.lastWin > 0 ? dollars(state.lastWin) : '$0.00';
-  refs.multiplier.textContent = `x${state.lastMultiplier}`;
-  refs.total.textContent = dollars(state.totalWinnings || 0);
-};
-
-const initReels = (state) => {
-  reels = new ReelSet(document.querySelector('.slot-window'));
-  reels.renderStatic(state.lastSymbols);
-};
-
-const playSpinSound = () => {
-  const audio = sounds.spin;
-  audio.currentTime = 0;
-  audio.play().catch(() => {});
-};
-
-const handleSpin = ({ targets }) => {
-  if (!reels) return;
-  playSpinSound();
-  reels.spinToTargets(targets);
-};
-
-const playWinSound = (amount) => {
-  let key = 'small';
-  if (amount >= 50) key = 'champion';
-  else if (amount >= 20) key = 'big';
-  else if (amount >= 10) key = 'medium';
-  const audio = sounds[key];
-  if (audio) {
-    audio.currentTime = 0;
-    audio.play().catch(() => {});
-  }
-};
-
-const launchConfetti = () => {
-  const layer = refs.celebration;
-  if (!layer) return;
-  layer.innerHTML = '';
-  for (let i = 0; i < 28; i += 1) {
+const spawnConfetti = () => {
+  elements.celebration.innerHTML = '';
+  const count = CONFIG.confettiPieces;
+  for (let i = 0; i < count; i += 1) {
     const piece = document.createElement('div');
-    piece.className = `confetti-piece ${i % 2 === 0 ? 'gold' : 'dark'}`;
+    piece.className = 'confetti';
     piece.style.left = `${Math.random() * 100}%`;
-    piece.style.animationDelay = `${Math.random() * 0.45}s`;
-    layer.appendChild(piece);
-    setTimeout(() => piece.remove(), 2000);
+    piece.style.background = `hsl(${Math.random() * 50 + 35}, 70%, 60%)`;
+    piece.style.animationDelay = `${Math.random() * 0.3}s`;
+    piece.style.animationDuration = `${1 + Math.random()}s`;
+    elements.celebration.appendChild(piece);
   }
+  elements.celebration.classList.add('active');
+  setTimeout(() => elements.celebration.classList.remove('active'), CONFIG.confettiLifetime);
 };
 
-const celebrateWin = (state) => {
-  if (!state.lastSpinId || state.lastSpinId === lastCelebratedSpinId) return;
-  if (state.lastWin > 0) {
-    playWinSound(state.lastWin);
-    launchConfetti();
+game.subscribe(updateText);
+
+game.onSpin((payload) => {
+  if (payload.type === 'start') {
+    reels.spin(payload.targets);
+    return;
   }
-  lastCelebratedSpinId = state.lastSpinId;
-};
-
-window.addEventListener('DOMContentLoaded', () => {
-  cacheRefs();
-  initReels(store.getState());
-  document.body.classList.add('display-mode');
-
-  store.subscribe((state) => {
-    renderHud(state);
-    if (!state.spinning && state.lastSymbols) {
-      reels.renderStatic(state.lastSymbols.map((name) => name));
-    }
-    celebrateWin(state);
-  });
-
-  store.onSpin(handleSpin);
+  if (payload.type === 'settle' && payload.payout > 0) {
+    spawnConfetti();
+  }
 });
