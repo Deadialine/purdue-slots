@@ -6,6 +6,27 @@ const store = createStore();
 let reels;
 let lastCelebratedSpinId = null;
 
+const normalizeWindow = (entry) => {
+  if (Array.isArray(entry) && entry.length === CONFIG.visibleSymbols) {
+    return entry.map((name) => {
+      const exists = CONFIG.symbols.find((s) => s.name === name);
+      return exists ? name : CONFIG.symbols[0].name;
+    });
+  }
+  return [
+    CONFIG.symbols[CONFIG.symbols.length - 1].name,
+    CONFIG.symbols[0].name,
+    CONFIG.symbols[1 % CONFIG.symbols.length].name,
+  ];
+};
+
+const normalizeWindows = (windows) => {
+  if (!Array.isArray(windows) || windows.length !== 3) {
+    return [0, 1, 2].map(() => normalizeWindow());
+  }
+  return windows.map((win) => normalizeWindow(win));
+};
+
 const sounds = {
   small: new Audio('assets/sounds/win_small.mp3'),
   medium: new Audio('assets/sounds/win_medium.mp3'),
@@ -13,6 +34,11 @@ const sounds = {
   champion: new Audio('assets/sounds/champion_music.mp3'),
 };
 const refs = {};
+
+const addTempClass = (target, className, duration = 800) => {
+  target.classList.add(className);
+  setTimeout(() => target.classList.remove(className), duration);
+};
 
 const addTempClass = (target, className, duration = 800) => {
   target.classList.add(className);
@@ -47,12 +73,12 @@ const renderHud = (state) => {
 
 const initReels = (state) => {
   reels = new ReelSet(document.querySelector('.slot-window'));
-  reels.renderStatic(state.lastSymbols);
+  reels.renderStatic(normalizeWindows(state.lastSymbols));
 };
 
 const handleSpin = ({ targets, windows }) => {
   if (!reels) return;
-  reels.spinToTargets(targets, windows);
+  reels.spinToTargets(targets, normalizeWindows(windows));
 };
 
 const triggerBoilerGoldFlash = () => {
