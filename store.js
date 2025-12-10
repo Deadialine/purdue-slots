@@ -15,11 +15,38 @@ const defaultSymbols = () => {
   return names;
 };
 
+const sanitizeState = (rawState) => {
+  if (!rawState || typeof rawState !== 'object') return null;
+  const safeNumber = (val, fallback, min = 0) => {
+    const parsed = Number(val);
+    return Number.isFinite(parsed) && parsed >= min ? parsed : fallback;
+  };
+
+  return {
+    balance: safeNumber(rawState.balance, CONFIG.startingCredits),
+    currentBet: safeNumber(rawState.currentBet, CONFIG.defaultBet || CONFIG.costPerSpin, CONFIG.costPerSpin || 0),
+    betMultiplier: safeNumber(rawState.betMultiplier, 1, 1),
+    lastMessage: typeof rawState.lastMessage === 'string' ? rawState.lastMessage : 'Insert credits to play.',
+    lastWin: safeNumber(rawState.lastWin, 0),
+    lastMultiplier: safeNumber(rawState.lastMultiplier, 1, 1),
+    autoSpinInterval: safeNumber(rawState.autoSpinInterval, CONFIG.autoSpinIntervalDefault, 100),
+    totalWinnings: safeNumber(rawState.totalWinnings, 0),
+    lastSymbols: Array.isArray(rawState.lastSymbols) && rawState.lastSymbols.length === 3
+      ? rawState.lastSymbols
+      : defaultSymbols(),
+    lastSpinId: typeof rawState.lastSpinId === 'string' ? rawState.lastSpinId : null,
+    // Always start fresh on page load so controls aren't stuck disabled
+    spinning: false,
+    autoSpin: false,
+  };
+};
+
 const getStoredState = () => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    return sanitizeState(parsed);
   } catch (err) {
     console.warn('Could not parse stored state', err);
     return null;
@@ -128,9 +155,7 @@ export const createStore = () => {
   }
 
   const stored = getStoredState();
-  if (stored) {
-    state = { ...state, ...stored };
-  }
+  if (stored) state = { ...state, ...stored };
   notify();
 
   const broadcastSpin = (payload) => {
