@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Purdue Slots - Display</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Montserrat:wght@600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="background-glow"></div>
+  <div class="header">
+    <div class="marquee"></div>
+    <h1>Purdue Slots - Display Screen</h1>
+    <div class="marquee"></div>
+  </div>
+
+  <main class="machine-shell display-layout">
+    <div class="top-panel">
+      <div class="credit-box">
+        <span class="label">Balance</span>
+        <span id="balance" class="value">$0</span>
+      </div>
+      <div class="credit-box">
+        <span class="label">Current Bet / Multiplier</span>
+        <span id="cost" class="value">$0</span>
+      </div>
+      <div class="credit-box">
+        <span class="label">Last Result</span>
+        <span id="result" class="value">Waiting for spin</span>
+      </div>
+      <div class="credit-box">
+        <span class="label">Last Win</span>
+        <span id="last-win" class="value">$0</span>
+      </div>
+      <div class="credit-box">
+        <span class="label">Multiplier</span>
+        <span id="multiplier" class="value">x1</span>
+      </div>
+      <div class="credit-box">
+        <span class="label">Total Winnings</span>
+        <span id="total" class="value">$0</span>
+      </div>
+    </div>
+
+    <div class="slot-window">
+      <div class="reel" id="reel-0"><div class="reel-track"></div></div>
+      <div class="reel" id="reel-1"><div class="reel-track"></div></div>
+      <div class="reel" id="reel-2"><div class="reel-track"></div></div>
+    </div>
+
+    <div class="footer-text">Projected view: reels, balances, and Boilermaker shine.</div>
+  </main>
+
+  <script type="module" src="display.js"></script>
+</body>
+</html>

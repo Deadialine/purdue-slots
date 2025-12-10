@@ -31,6 +31,10 @@ body {
   overflow: hidden;
 }
 
+body.display-mode {
+  padding: 20px;
+}
+
 .background-glow {
   position: absolute;
   inset: 0;
@@ -88,6 +92,14 @@ body {
   border-radius: 22px;
   padding: 24px;
   overflow: hidden;
+}
+
+.machine-shell.control-layout {
+  width: min(1100px, 100%);
+}
+
+.machine-shell.display-layout {
+  width: min(1200px, 100%);
 }
 
 .machine-shell::after {
@@ -275,6 +287,80 @@ body {
   gap: 12px;
   justify-content: center;
   margin: 4px 0 10px;
+}
+
+.control-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.panel {
+  background: linear-gradient(160deg, rgba(207, 185, 145, 0.08), rgba(207, 185, 145, 0.02));
+  border: 1px solid rgba(207, 185, 145, 0.4);
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: inset 0 0 12px rgba(207, 185, 145, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.panel-title {
+  font-family: var(--font-title);
+  color: var(--accent);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-size: 16px;
+}
+
+.balance-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.balance-controls input,
+.auto-spin-row input {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(207, 185, 145, 0.45);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f7f4ec;
+  font-size: 16px;
+}
+
+.quick-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.auto-spin-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.auto-spin-row label {
+  width: 120px;
+  font-size: 14px;
+  color: rgba(247, 244, 236, 0.8);
+}
+
+.status-text {
+  font-size: 14px;
+  color: rgba(247, 244, 236, 0.9);
+}
+
+.multiplier-label {
+  margin-top: 8px;
+}
+
+.panel.action-panel .control-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .btn {
