@@ -19,6 +19,11 @@ const addTempClass = (target, className, duration = 800) => {
   setTimeout(() => target.classList.remove(className), duration);
 };
 
+const addTempClass = (target, className, duration = 800) => {
+  target.classList.add(className);
+  setTimeout(() => target.classList.remove(className), duration);
+};
+
 const cacheRefs = () => {
   refs.balance = document.getElementById('balance');
   refs.cost = document.getElementById('cost');
