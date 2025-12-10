@@ -6,11 +6,24 @@ const refs = {};
 let autoSpinTimer = null;
 const sounds = {
   spin: new Audio('assets/sounds/slot_sound.mp3'),
+  champion: new Audio('assets/sounds/champion_music.mp3'),
 };
 
 const playSpinSound = () => {
   sounds.spin.currentTime = 0;
   sounds.spin.play().catch(() => {});
+};
+
+const stopChampionMusic = () => {
+  const audio = sounds.champion;
+  if (!audio) return;
+  audio.pause();
+  audio.currentTime = 0;
+};
+
+const playChampionMusic = () => {
+  stopChampionMusic();
+  sounds.champion.play().catch(() => {});
 };
 
 const cacheRefs = () => {
@@ -171,12 +184,23 @@ const bindEvents = () => {
   if (refs.autoSpinToggle) refs.autoSpinToggle.addEventListener('click', toggleAutoSpin);
 };
 
+const bindGlobalClickHandlers = () => {
+  document.addEventListener('click', (event) => {
+    if (refs.reset && (event.target === refs.reset || refs.reset.contains(event.target))) {
+      playChampionMusic();
+      return;
+    }
+    stopChampionMusic();
+  });
+};
+
 window.addEventListener('DOMContentLoaded', () => {
   cacheRefs();
   renderHud(store.getState());
   renderBetOptions(store.getState());
   renderMultiplierOptions(store.getState());
   bindEvents();
+  bindGlobalClickHandlers();
 
   store.subscribe((state) => {
     renderHud(state);
