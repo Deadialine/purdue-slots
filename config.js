@@ -1,4 +1,13 @@
 export const CONFIG = {
+  // Global win gate (10% target). A single RNG call decides win/loss per spin.
+  winBiasChance: 0.1,
+  startingCredits: 0,
+  costPerSpin: 1,
+  betOptions: [1, 2, 5, 10],
+  defaultBet: 1,
+  visibleSymbols: 3,
+  symbolHeight: 120,
+  autoSpinIntervalDefault: 1200,
   winBiasChance: 0.35,
   startingCredits: 0,
   costPerSpin: 1,

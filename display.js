@@ -1,9 +1,21 @@
+import { dollars } from './config.js';
 import { CONFIG, dollars } from './config.js';
 import { createStore } from './store.js';
 import { ReelSet } from './reels.js';
 
 const store = createStore();
 let reels;
+let lastCelebratedSpinId = null;
+
+const refs = {};
+
+const sounds = {
+  small: new Audio('assets/sounds/win_small.mp3'),
+  medium: new Audio('assets/sounds/win_medium.mp3'),
+  big: new Audio('assets/sounds/win_big.mp3'),
+  champion: new Audio('assets/sounds/champion_music.mp3'),
+};
+
 
 const refs = {};
 
@@ -14,6 +26,7 @@ const cacheRefs = () => {
   refs.lastWin = document.getElementById('last-win');
   refs.multiplier = document.getElementById('multiplier');
   refs.total = document.getElementById('total');
+  refs.celebration = document.getElementById('celebration-layer');
 };
 
 const renderHud = (state) => {
@@ -36,6 +49,41 @@ const handleSpin = ({ targets }) => {
   reels.spinToTargets(targets);
 };
 
+const playWinSound = (amount) => {
+  let key = 'small';
+  if (amount >= 50) key = 'champion';
+  else if (amount >= 20) key = 'big';
+  else if (amount >= 10) key = 'medium';
+  const audio = sounds[key];
+  if (audio) {
+    audio.currentTime = 0;
+    audio.play().catch(() => {});
+  }
+};
+
+const launchConfetti = () => {
+  if (!refs.celebration) return;
+  const layer = refs.celebration;
+  layer.innerHTML = '';
+  for (let i = 0; i < 28; i += 1) {
+    const node = document.createElement('div');
+    node.className = `confetti-piece ${i % 2 === 0 ? 'gold' : 'dark'}`;
+    node.style.left = `${Math.random() * 100}%`;
+    node.style.animationDelay = `${Math.random() * 0.4}s`;
+    layer.appendChild(node);
+    setTimeout(() => node.remove(), 2000);
+  }
+};
+
+const celebrateWin = (state) => {
+  if (!state.lastSpinId || state.lastSpinId === lastCelebratedSpinId) return;
+  if (state.lastWin > 0) {
+    playWinSound(state.lastWin);
+    launchConfetti();
+  }
+  lastCelebratedSpinId = state.lastSpinId;
+};
+
 window.addEventListener('DOMContentLoaded', () => {
   cacheRefs();
   initReels(store.getState());
@@ -44,6 +92,7 @@ window.addEventListener('DOMContentLoaded', () => {
     if (!state.spinning && state.lastSymbols) {
       reels.renderStatic(state.lastSymbols.map((name) => name));
     }
+    celebrateWin(state);
   });
   store.onSpin(handleSpin);
 

@@ -86,6 +86,30 @@ const openDisplayWindow = () => {
 };
 
 const startAutoSpin = (skipStateUpdate = false) => {
+  const rawInterval = parseInt(refs.autoSpinInterval.value, 10);
+  const interval = rawInterval > 0 ? rawInterval : store.getState().autoSpinInterval || CONFIG.autoSpinIntervalDefault;
+  if (!skipStateUpdate) {
+    store.setAutoSpin(true);
+    store.setAutoSpinInterval(interval);
+  }
+  clearInterval(autoSpinTimer);
+  autoSpinTimer = setInterval(() => {
+    const state = store.getState();
+    const cost = state.currentBet * state.betMultiplier;
+    if (state.balance < cost) {
+      stopAutoSpin();
+      refs.autoSpinStatus.textContent = 'Auto spin stopped: insufficient balance.';
+      return;
+    }
+    if (!state.spinning) {
+      const result = store.spin();
+      if (!result && state.balance < cost) {
+        stopAutoSpin();
+        refs.autoSpinStatus.textContent = 'Auto spin stopped: insufficient balance.';
+      }
+    }
+  }, interval);
+  refs.autoSpinStatus.textContent = `Auto spin is ON (every ${interval}ms)`;
   const interval = parseInt(refs.autoSpinInterval.value, 10) || 1200;
   if (!skipStateUpdate) {
     store.setAutoSpin(true);
@@ -128,6 +152,12 @@ const bindEvents = () => {
   });
   refs.addBalanceButton.addEventListener('click', () => {
     const amount = parseFloat(refs.addBalanceInput.value) || 0;
+    if (amount > 0) {
+      store.addBalance(amount);
+      refs.addBalanceInput.value = '';
+    } else {
+      store.addBalance(NaN);
+    }
     if (amount > 0) store.addBalance(amount);
   });
   refs.quickAddButtons.forEach((btn) => {
@@ -138,12 +168,19 @@ const bindEvents = () => {
   });
   refs.openDisplay.addEventListener('click', openDisplayWindow);
   refs.autoSpinToggle.addEventListener('click', toggleAutoSpin);
+  refs.autoSpinInterval.addEventListener('change', () => {
+    const raw = parseInt(refs.autoSpinInterval.value, 10);
+    if (raw > 0) {
+      store.setAutoSpinInterval(raw);
+    }
+  });
 };
 
 window.addEventListener('DOMContentLoaded', () => {
   cacheRefs();
   renderBetOptions(store.getState());
   renderMultiplierOptions(store.getState());
+  refs.autoSpinInterval.value = store.getState().autoSpinInterval || CONFIG.autoSpinIntervalDefault;
   bindEvents();
 
   store.subscribe((state) => {

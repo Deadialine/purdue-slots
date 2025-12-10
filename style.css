@@ -10,6 +10,18 @@
   --shadow-strong: 0 10px 30px rgba(0, 0, 0, 0.5);
   --symbol-size: 120px;
 }
+:root {
+  --gold: #cfb991;
+  --gold-dark: #b59c63;
+  --onyx: #0f1114;
+  --panel: #181b21;
+  --accent: #ffeb9a;
+  --glow: rgba(207, 185, 145, 0.35);
+  --font-title: 'Orbitron', sans-serif;
+  --font-body: 'Montserrat', sans-serif;
+  --shadow-strong: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --symbol-size: 120px;
+}
 
 * {
   box-sizing: border-box;
@@ -25,9 +37,11 @@ body {
   color: #f7f4ec;
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
+  justify-content: flex-start;
+  gap: 16px;
+  padding: 28px 18px 32px;
   position: relative;
   overflow: hidden;
 }
@@ -80,6 +94,39 @@ body.display-mode {
   animation: marquee 4s linear infinite;
   opacity: 0.9;
 }
+.header {
+  position: relative;
+  width: min(1200px, 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  z-index: 3;
+  flex-wrap: wrap;
+  padding: 0 8px;
+}
+
+.header h1 {
+  flex: 1 1 240px;
+  text-align: center;
+  font-family: var(--font-title);
+  letter-spacing: 2px;
+  font-size: clamp(22px, 4vw, 38px);
+  color: var(--accent);
+  text-shadow: 0 0 10px rgba(255, 245, 196, 0.35), 0 0 20px rgba(207, 185, 145, 0.6);
+  padding: 6px 8px;
+}
+
+.marquee {
+  flex: 1 1 140px;
+  min-width: 140px;
+  height: 10px;
+  background: repeating-linear-gradient(90deg, #f3d77c 0 14px, #fdf8dd 14px 24px, #b59c63 24px 36px);
+  border-radius: 999px;
+  box-shadow: 0 0 12px rgba(207, 185, 145, 0.55);
+  animation: marquee 4s linear infinite;
+  opacity: 0.9;
+}
 
 @keyframes marquee {
   from { background-position-x: 0; }
@@ -89,13 +136,22 @@ body.display-mode {
 .machine-shell {
   position: relative;
   z-index: 2;
-  width: min(960px, 100%);
+  width: min(1200px, 100%);
+  min-height: calc(100vh - 200px);
   background: linear-gradient(145deg, #15171d, #0f1114 65%);
   border: 2px solid var(--gold-dark);
   box-shadow: var(--shadow-strong), inset 0 0 0 1px rgba(255, 255, 255, 0.03);
   border-radius: 22px;
-  padding: 24px;
+  padding: clamp(18px, 2vw, 28px);
   overflow: hidden;
+}
+
+.machine-shell.control-layout {
+  width: min(1180px, 100%);
+}
+
+.machine-shell.display-layout {
+  width: min(1280px, 100%);
 }
 
 .machine-shell.control-layout {
@@ -121,6 +177,7 @@ body.display-mode {
   gap: 14px;
   margin-bottom: 18px;
 }
+
 
 .credit-box {
   background: linear-gradient(160deg, rgba(207, 185, 145, 0.08), rgba(207, 185, 145, 0.02));
@@ -294,6 +351,85 @@ body.display-mode {
   gap: 12px;
   justify-content: center;
   margin: 4px 0 10px;
+}
+
+.control-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+  align-items: stretch;
+}
+
+.panel {
+  background: linear-gradient(160deg, rgba(207, 185, 145, 0.08), rgba(207, 185, 145, 0.02));
+  border: 1px solid rgba(207, 185, 145, 0.4);
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: inset 0 0 12px rgba(207, 185, 145, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 100%;
+}
+
+.panel-title {
+  font-family: var(--font-title);
+  color: var(--accent);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-size: 16px;
+}
+
+.balance-controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.balance-controls input,
+.auto-spin-row input {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(207, 185, 145, 0.45);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f7f4ec;
+  font-size: 16px;
+}
+
+.quick-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.auto-spin-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.auto-spin-row label {
+  width: 120px;
+  font-size: 14px;
+  color: rgba(247, 244, 236, 0.8);
+}
+
+.status-text {
+  font-size: 14px;
+  color: rgba(247, 244, 236, 0.9);
+}
+
+.multiplier-label {
+  margin-top: 8px;
+}
+
+.panel.action-panel .control-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .control-grid {
