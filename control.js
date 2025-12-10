@@ -8,6 +8,11 @@ const sounds = {
   spin: new Audio('assets/sounds/slot_sound.mp3'),
 };
 
+const playSpinSound = () => {
+  sounds.spin.currentTime = 0;
+  sounds.spin.play().catch(() => {});
+};
+
 const cacheRefs = () => {
   refs.balance = document.getElementById('balance');
   refs.result = document.getElementById('result');
@@ -104,6 +109,7 @@ const startAutoSpin = (skipStateUpdate = false) => {
       return;
     }
     if (!state.spinning) {
+      playSpinSound();
       const result = store.spin();
       if (!result && state.balance < cost) {
         stopAutoSpin();
@@ -145,11 +151,6 @@ const handleAddBalance = (rawAmount) => {
 };
 
 const bindEvents = () => {
-  const playSpinSound = () => {
-    sounds.spin.currentTime = 0;
-    sounds.spin.play().catch(() => {});
-  };
-
   if (refs.spin) refs.spin.addEventListener('click', () => {
     playSpinSound();
     store.spin();
