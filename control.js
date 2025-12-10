@@ -18,7 +18,7 @@ const cacheRefs = () => {
   refs.reset = document.getElementById('reset');
   refs.addBalanceInput = document.getElementById('add-balance');
   refs.addBalanceButton = document.getElementById('add-balance-btn');
-  refs.quickAddButtons = document.querySelectorAll('[data-add]');
+  refs.quickAddButtons = Array.from(document.querySelectorAll('[data-add]'));
   refs.openDisplay = document.getElementById('open-display');
   refs.autoSpinToggle = document.getElementById('auto-spin-toggle');
   refs.autoSpinInterval = document.getElementById('auto-spin-interval');
@@ -110,17 +110,6 @@ const startAutoSpin = (skipStateUpdate = false) => {
     }
   }, interval);
   refs.autoSpinStatus.textContent = `Auto spin is ON (every ${interval}ms)`;
-  const interval = parseInt(refs.autoSpinInterval.value, 10) || 1200;
-  if (!skipStateUpdate) {
-    store.setAutoSpin(true);
-  }
-  clearInterval(autoSpinTimer);
-  autoSpinTimer = setInterval(() => {
-    if (!store.getState().spinning) {
-      store.spin();
-    }
-  }, interval);
-  refs.autoSpinStatus.textContent = `Auto spin running every ${interval}ms`;
   refs.autoSpinToggle.textContent = 'Stop Auto Spin';
   refs.autoSpinToggle.classList.add('toggled');
 };
@@ -144,50 +133,55 @@ const toggleAutoSpin = () => {
   }
 };
 
+const handleAddBalance = (rawAmount) => {
+  if (!refs.addBalanceInput) return;
+  const source = rawAmount ?? refs.addBalanceInput.value;
+  const added = store.addBalance(source);
+  if (added) {
+    refs.addBalanceInput.value = '';
+  }
+};
+
 const bindEvents = () => {
-  refs.spin.addEventListener('click', () => store.spin());
-  refs.reset.addEventListener('click', () => {
-    stopAutoSpin();
-    store.reset();
-  });
-  refs.addBalanceButton.addEventListener('click', () => {
-    const amount = parseFloat(refs.addBalanceInput.value) || 0;
-    if (amount > 0) {
-      store.addBalance(amount);
-      refs.addBalanceInput.value = '';
-    } else {
-      store.addBalance(NaN);
-    }
-    if (amount > 0) store.addBalance(amount);
-  });
-  refs.quickAddButtons.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const amount = parseFloat(btn.dataset.add);
-      store.addBalance(amount);
+  if (refs.spin) refs.spin.addEventListener('click', () => store.spin());
+  if (refs.reset) {
+    refs.reset.addEventListener('click', () => {
+      stopAutoSpin();
+      store.reset();
     });
+  }
+  if (refs.addBalanceButton) {
+    refs.addBalanceButton.addEventListener('click', () => handleAddBalance(refs.addBalanceInput?.value));
+  }
+  refs.quickAddButtons.forEach((btn) => {
+    btn.addEventListener('click', () => handleAddBalance(btn.dataset.add || btn.textContent));
   });
-  refs.openDisplay.addEventListener('click', openDisplayWindow);
-  refs.autoSpinToggle.addEventListener('click', toggleAutoSpin);
-  refs.autoSpinInterval.addEventListener('change', () => {
-    const raw = parseInt(refs.autoSpinInterval.value, 10);
-    if (raw > 0) {
-      store.setAutoSpinInterval(raw);
-    }
-  });
+  if (refs.openDisplay) refs.openDisplay.addEventListener('click', openDisplayWindow);
+  if (refs.autoSpinToggle) refs.autoSpinToggle.addEventListener('click', toggleAutoSpin);
+  if (refs.autoSpinInterval) {
+    refs.autoSpinInterval.addEventListener('change', () => {
+      const raw = parseInt(refs.autoSpinInterval.value, 10);
+      if (raw > 0) {
+        store.setAutoSpinInterval(raw);
+      }
+    });
+  }
 };
 
 window.addEventListener('DOMContentLoaded', () => {
   cacheRefs();
   renderBetOptions(store.getState());
   renderMultiplierOptions(store.getState());
-  refs.autoSpinInterval.value = store.getState().autoSpinInterval || CONFIG.autoSpinIntervalDefault;
+  if (refs.autoSpinInterval) {
+    refs.autoSpinInterval.value = store.getState().autoSpinInterval || CONFIG.autoSpinIntervalDefault;
+  }
   bindEvents();
 
   store.subscribe((state) => {
     renderHud(state);
     renderBetOptions(state);
     renderMultiplierOptions(state);
-    refs.spin.disabled = state.spinning;
+    if (refs.spin) refs.spin.disabled = state.spinning;
     if (state.autoSpin && !autoSpinTimer) {
       startAutoSpin(true);
     }

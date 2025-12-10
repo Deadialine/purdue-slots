@@ -1,4 +1,3 @@
-import { dollars } from './config.js';
 import { CONFIG, dollars } from './config.js';
 import { createStore } from './store.js';
 import { ReelSet } from './reels.js';
@@ -7,16 +6,12 @@ const store = createStore();
 let reels;
 let lastCelebratedSpinId = null;
 
-const refs = {};
-
 const sounds = {
   small: new Audio('assets/sounds/win_small.mp3'),
   medium: new Audio('assets/sounds/win_medium.mp3'),
   big: new Audio('assets/sounds/win_big.mp3'),
   champion: new Audio('assets/sounds/champion_music.mp3'),
 };
-
-
 const refs = {};
 
 const cacheRefs = () => {
