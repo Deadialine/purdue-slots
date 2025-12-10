@@ -44,24 +44,6 @@ const calculatePayout = (symbols, effectiveBet) => {
   return multiplier * effectiveBet;
 };
 
-// Force a winning window (all three the same) when the win coin flip succeeds.
-const buildWinningTargets = () => {
-  const winner = CONFIG.symbols[Math.floor(Math.random() * CONFIG.symbols.length)];
-  return [winner.name, winner.name, winner.name];
-};
-
-// Ensure at least one reel differs so we never accidentally show a full match on losses.
-const buildLosingTargets = () => {
-  const picks = [];
-  CONFIG.symbols.forEach(() => {
-    picks.push(CONFIG.symbols[Math.floor(Math.random() * CONFIG.symbols.length)].name);
-  });
-  // Force a mismatch if random draw landed on a win pattern
-  if (picks[0] === picks[1] && picks[1] === picks[2]) {
-    const alt = CONFIG.symbols.find((s) => s.name !== picks[0]);
-    picks[2] = alt ? alt.name : picks[2];
-  }
-  return picks.slice(0, 3);
 const pickTargets = (winBias) => {
   const biased = Math.random() < winBias;
   if (biased) {
@@ -156,34 +138,42 @@ export const createStore = () => {
     if (channel) channel.postMessage({ type: 'spin-start', payload, source: instanceId });
   };
 
-  // Bet selection plumbing: keep positive values only so cost math stays valid.
   const setBet = (bet) => {
     const safeBet = Number.isFinite(bet) && bet > 0 ? bet : state.currentBet;
     applyState({ currentBet: safeBet, lastMessage: `Bet set to $${safeBet.toFixed(2)}` });
   };
+
   const setBetMultiplier = (multiplier) => {
     const safe = Number.isFinite(multiplier) && multiplier > 0 ? multiplier : 1;
     applyState({ betMultiplier: safe, lastMessage: `Multiplier set to x${safe}` });
   };
 
-  // Balance updates are centralized here so both windows stay synced.
   const addBalance = (amount) => {
-    const safeAmount = Number.isFinite(amount) && amount > 0 ? amount : 0;
+    const normalized = (() => {
+      if (typeof amount === 'string') {
+        const cleaned = amount.replace(/[^0-9.+-]/g, '');
+        const parsed = Number.parseFloat(cleaned);
+        return Number.isFinite(parsed) ? parsed : NaN;
+      }
+      const parsed = Number(amount);
+      return Number.isFinite(parsed) ? parsed : NaN;
+    })();
+
+    const safeAmount = normalized > 0 ? Math.round(normalized * 100) / 100 : 0;
     if (!safeAmount) {
       applyState({ lastMessage: 'Enter a valid amount to add.' });
       return;
     }
-    applyState({ balance: state.balance + safeAmount, lastMessage: `Added $${safeAmount.toFixed(2)}. Ready to spin!` });
+    const nextBalance = Math.round((state.balance + safeAmount) * 100) / 100;
+    applyState({ balance: nextBalance, lastMessage: `Added $${safeAmount.toFixed(2)}. Ready to spin!` });
   };
-  const setAutoSpin = (active) => applyState({ autoSpin: active });
+
+  const setAutoSpin = (active) => applyState({ autoSpin: !!active });
+
   const setAutoSpinInterval = (interval) => {
     const safeInterval = Number.isFinite(interval) && interval > 0 ? interval : state.autoSpinInterval;
     applyState({ autoSpinInterval: safeInterval });
   };
-  const setBet = (bet) => applyState({ currentBet: bet, lastMessage: `Bet set to $${bet.toFixed(2)}` });
-  const setBetMultiplier = (multiplier) => applyState({ betMultiplier: multiplier, lastMessage: `Multiplier set to x${multiplier}` });
-  const addBalance = (amount) => applyState({ balance: state.balance + amount, lastMessage: `Added $${amount.toFixed(2)}. Ready to spin!` });
-  const setAutoSpin = (active) => applyState({ autoSpin: active });
 
   const reset = () => {
     applyState({
@@ -213,23 +203,16 @@ export const createStore = () => {
       return null;
     }
 
-    // Single RNG gate drives the ~10% win probability.
-    const shouldWin = Math.random() < CONFIG.winBiasChance;
-    const targets = shouldWin ? buildWinningTargets() : buildLosingTargets();
-    if (state.balance < cost) {
-      applyState({ lastMessage: 'Insert more credits to spin.' });
-      return null;
-    }
-
     const targets = pickTargets(CONFIG.winBiasChance);
     const spinId = randomId();
     const nextBalance = state.balance - cost;
+
     applyState({
       balance: nextBalance,
       spinning: true,
       lastWin: 0,
       lastMultiplier: 1,
-      lastMessage: 'Spinning...'
+      lastMessage: 'Spinning...',
     });
 
     broadcastSpin({ targets, spinId });
