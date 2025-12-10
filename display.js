@@ -101,16 +101,19 @@ const triggerBoilermakerTrain = () => {
 };
 
 const chooseCelebrationEffect = (amount) => {
-  const effects = [
+  const primaryEffects = [
     { id: 'flash', minAmount: 0, run: triggerGoldFlash },
     { id: 'shake', minAmount: 10, run: triggerScreenShake },
     { id: 'p-rain', minAmount: 0, run: triggerPurdueRain },
-    { id: 'train', minAmount: 50, run: triggerBoilermakerTrain },
   ];
 
-  const eligible = effects.filter((effect) => amount >= effect.minAmount);
-  if (!eligible.length) return null;
-  return eligible[Math.floor(Math.random() * eligible.length)];
+  const eligible = primaryEffects.filter((effect) => amount >= effect.minAmount);
+  if (!eligible.length) return { primary: null, includeTrain: amount >= 50 };
+
+  return {
+    primary: eligible[Math.floor(Math.random() * eligible.length)],
+    includeTrain: amount >= 50,
+  };
 };
 
 const celebrateWin = (state) => {
@@ -119,9 +122,38 @@ const celebrateWin = (state) => {
     playWinSound(state.lastWin);
     launchConfetti();
     const chosenEffect = chooseCelebrationEffect(state.lastWin);
-    chosenEffect?.run(state.lastWin);
+    chosenEffect?.primary?.run(state.lastWin);
+    if (chosenEffect?.includeTrain) {
+      triggerBoilermakerTrain();
+    }
   }
   lastCelebratedSpinId = state.lastSpinId;
+};
+
+const triggerGoldFlash = (amount) => {
+  if (!refs.celebration) return;
+  const overlay = document.createElement('div');
+  overlay.className = 'boiler-gold-flash';
+  refs.celebration.appendChild(overlay);
+
+  const reelsArea = document.querySelector('.slot-window');
+  const winText = refs.result;
+  reelsArea?.classList.add('flash-outline');
+  winText?.classList.add('flash-outline');
+
+  const cleanup = () => {
+    overlay.remove();
+    reelsArea?.classList.remove('flash-outline');
+    winText?.classList.remove('flash-outline');
+  };
+
+  overlay.addEventListener('animationend', cleanup, { once: true });
+};
+
+const triggerScreenShake = (amount) => {
+  if (amount < 10) return; // Medium/large wins only
+  document.body.classList.add('screen-shake');
+  setTimeout(() => document.body.classList.remove('screen-shake'), 500);
 };
 
 const triggerGoldFlash = (amount) => {
