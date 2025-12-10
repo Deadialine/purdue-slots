@@ -39,9 +39,9 @@ const initReels = (state) => {
   reels.renderStatic(state.lastSymbols);
 };
 
-const handleSpin = ({ targets }) => {
+const handleSpin = ({ targets, windows }) => {
   if (!reels) return;
-  reels.spinToTargets(targets);
+  reels.spinToTargets(targets, windows);
 };
 
 const playWinSound = (amount) => {
