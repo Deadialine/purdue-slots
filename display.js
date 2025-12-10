@@ -86,9 +86,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   store.subscribe((state) => {
     renderHud(state);
-    if (!state.spinning && state.lastSymbols) {
-      reels.renderStatic(state.lastSymbols.map((name) => name));
-    }
     celebrateWin(state);
   });
   store.onSpin(handleSpin);
