@@ -4,6 +4,7 @@ import { ReelSet } from './reels.js';
 
 const store = createStore();
 let reels;
+let lastRenderedWindowKey = '';
 let lastCelebratedSpinId = null;
 
 const normalizeWindow = (entry) => {
@@ -50,6 +51,11 @@ const addTempClass = (target, className, duration = 800) => {
   setTimeout(() => target.classList.remove(className), duration);
 };
 
+const addTempClass = (target, className, duration = 800) => {
+  target.classList.add(className);
+  setTimeout(() => target.classList.remove(className), duration);
+};
+
 const cacheRefs = () => {
   refs.balance = document.getElementById('balance');
   refs.cost = document.getElementById('cost');
@@ -71,14 +77,26 @@ const renderHud = (state) => {
   refs.total.textContent = dollars(state.totalWinnings || 0);
 };
 
+const renderReels = (state) => {
+  if (!reels) return;
+  const windows = normalizeWindows(state.lastSymbols);
+  const key = JSON.stringify(windows);
+  if (key === lastRenderedWindowKey) return;
+  reels.renderStatic(windows);
+  lastRenderedWindowKey = key;
+};
+
 const initReels = (state) => {
   reels = new ReelSet(document.querySelector('.slot-window'));
-  reels.renderStatic(normalizeWindows(state.lastSymbols));
+  lastRenderedWindowKey = '';
+  renderReels(state);
 };
 
 const handleSpin = ({ targets, windows }) => {
   if (!reels) return;
-  reels.spinToTargets(targets, normalizeWindows(windows));
+  const normalized = normalizeWindows(windows);
+  lastRenderedWindowKey = JSON.stringify(normalized);
+  reels.spinToTargets(targets, normalized);
 };
 
 const triggerBoilerGoldFlash = () => {
@@ -169,6 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   store.subscribe((state) => {
     renderHud(state);
+    renderReels(state);
     celebrateWin(state);
   });
   store.onSpin(handleSpin);
