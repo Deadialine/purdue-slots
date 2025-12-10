@@ -86,32 +86,17 @@ const openDisplayWindow = () => {
 };
 
 const startAutoSpin = (skipStateUpdate = false) => {
-  const interval = parseInt(refs.autoSpinInterval.value, 10);
-  if (!interval || interval <= 0) {
-    refs.autoSpinStatus.textContent = 'Enter a valid interval in ms to start auto spin.';
-    return;
-  }
+  const interval = parseInt(refs.autoSpinInterval.value, 10) || 1200;
   if (!skipStateUpdate) {
     store.setAutoSpin(true);
   }
   clearInterval(autoSpinTimer);
   autoSpinTimer = setInterval(() => {
-    const state = store.getState();
-    const cost = state.currentBet * state.betMultiplier;
-    if (state.balance < cost) {
-      stopAutoSpin();
-      refs.autoSpinStatus.textContent = 'Auto spin stopped: insufficient balance.';
-      return;
-    }
-    if (!state.spinning) {
-      const result = store.spin();
-      if (!result && state.balance < cost) {
-        stopAutoSpin();
-        refs.autoSpinStatus.textContent = 'Auto spin stopped: insufficient balance.';
-      }
+    if (!store.getState().spinning) {
+      store.spin();
     }
   }, interval);
-  refs.autoSpinStatus.textContent = `Auto spin is ON (every ${interval}ms)`;
+  refs.autoSpinStatus.textContent = `Auto spin running every ${interval}ms`;
   refs.autoSpinToggle.textContent = 'Stop Auto Spin';
   refs.autoSpinToggle.classList.add('toggled');
 };
@@ -143,12 +128,7 @@ const bindEvents = () => {
   });
   refs.addBalanceButton.addEventListener('click', () => {
     const amount = parseFloat(refs.addBalanceInput.value) || 0;
-    if (amount > 0) {
-      store.addBalance(amount);
-      refs.addBalanceInput.value = '';
-    } else {
-      store.addBalance(NaN);
-    }
+    if (amount > 0) store.addBalance(amount);
   });
   refs.quickAddButtons.forEach((btn) => {
     btn.addEventListener('click', () => {
