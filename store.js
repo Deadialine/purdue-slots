@@ -149,12 +149,14 @@ export const createStore = () => {
   };
 
   const addBalance = (amount) => {
-    const safeAmount = Number.isFinite(amount) && amount > 0 ? amount : 0;
+    const parsed = Number.isFinite(amount) ? Number(amount) : NaN;
+    const safeAmount = parsed > 0 ? Math.round(parsed * 100) / 100 : 0;
     if (!safeAmount) {
       applyState({ lastMessage: 'Enter a valid amount to add.' });
       return;
     }
-    applyState({ balance: state.balance + safeAmount, lastMessage: `Added $${safeAmount.toFixed(2)}. Ready to spin!` });
+    const nextBalance = Math.round((state.balance + safeAmount) * 100) / 100;
+    applyState({ balance: nextBalance, lastMessage: `Added $${safeAmount.toFixed(2)}. Ready to spin!` });
   };
 
   const setAutoSpin = (active) => applyState({ autoSpin: !!active });

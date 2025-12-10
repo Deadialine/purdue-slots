@@ -133,6 +133,12 @@ const toggleAutoSpin = () => {
   }
 };
 
+const handleAddBalance = (rawAmount) => {
+  const parsed = Number.parseFloat(rawAmount);
+  store.addBalance(parsed);
+  refs.addBalanceInput.value = '';
+};
+
 const bindEvents = () => {
   refs.spin.addEventListener('click', () => store.spin());
   refs.reset.addEventListener('click', () => {
