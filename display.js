@@ -156,6 +156,32 @@ const triggerScreenShake = (amount) => {
   setTimeout(() => document.body.classList.remove('screen-shake'), 500);
 };
 
+const triggerGoldFlash = (amount) => {
+  if (!refs.celebration) return;
+  const overlay = document.createElement('div');
+  overlay.className = 'boiler-gold-flash';
+  refs.celebration.appendChild(overlay);
+
+  const reelsArea = document.querySelector('.slot-window');
+  const winText = refs.result;
+  reelsArea?.classList.add('flash-outline');
+  winText?.classList.add('flash-outline');
+
+  const cleanup = () => {
+    overlay.remove();
+    reelsArea?.classList.remove('flash-outline');
+    winText?.classList.remove('flash-outline');
+  };
+
+  overlay.addEventListener('animationend', cleanup, { once: true });
+};
+
+const triggerScreenShake = (amount) => {
+  if (amount < 10) return; // Medium/large wins only
+  document.body.classList.add('screen-shake');
+  setTimeout(() => document.body.classList.remove('screen-shake'), 500);
+};
+
 document.addEventListener('DOMContentLoaded', () => {
   cacheRefs();
   renderHud(store.getState());
