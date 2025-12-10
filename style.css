@@ -279,6 +279,22 @@ body.display-mode {
   pointer-events: none;
 }
 
+.slot-window::after {
+  content: '';
+  position: absolute;
+  left: clamp(10px, 1.5vw, 18px);
+  right: clamp(10px, 1.5vw, 18px);
+  top: 50%;
+  height: calc(var(--symbol-size) + 28px);
+  transform: translateY(-50%);
+  border: 2px solid var(--gold);
+  border-radius: 14px;
+  box-shadow: 0 0 12px rgba(207, 185, 145, 0.55), 0 0 24px rgba(207, 185, 145, 0.25);
+  background: radial-gradient(circle at 50% 50%, rgba(207, 185, 145, 0.08), rgba(207, 185, 145, 0.02));
+  pointer-events: none;
+  z-index: 2;
+}
+
 .reel {
   position: relative;
   height: 100%;
@@ -336,12 +352,15 @@ body.display-mode {
   height: var(--symbol-size);
   display: grid;
   place-items: center;
-  padding: 10px;
+  padding: 8px;
+  aspect-ratio: 1 / 1;
 }
 
 .symbol img {
-  width: 100%;
-  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
   object-fit: contain;
   filter: drop-shadow(0 10px 12px rgba(0,0,0,0.35));
 }
@@ -409,6 +428,14 @@ body.display-mode {
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+#auto-spin-toggle {
+  font-size: 22px;
+  padding: 20px 36px;
+  min-width: 220px;
+  letter-spacing: 0.5px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45), 0 0 16px rgba(207, 185, 145, 0.35);
 }
 
 .auto-spin-row label {
